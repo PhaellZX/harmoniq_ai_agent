@@ -1,0 +1,22 @@
+# --- LLM & Agente Local ---
+ollama>=0.1.0
+pydantic>=2.0.0
+
+# --- Processamento de Áudio & Análise ---
+librosa>=0.10.0
+soundfile>=0.12.0
+pydub>=0.25.1
+numpy>=1.24.0
+
+# --- Separação de Stems ---
+demucs>=4.0.0
+
+# --- Download de Áudio ---
+yt-dlp>=2024.0.0
+
+# --- Geração de PDF & Documentos ---
+reportlab>=4.0.0
+
+# --- Interface Gráfica ---
+customtkinter>=5.2.0
+pillow>=10.0.0

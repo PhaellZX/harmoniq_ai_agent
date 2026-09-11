@@ -1,0 +1,19 @@
+# Ambiente Virtual
+venv/
+.venv/
+env/
+
+# Python / Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Arquivos de Saída e Mídias Processadas (para não carregar áudios pesados)
+output/
+*.wav
+*.mp3
+*.pdf
+
+# Arquivos de Configuração IDE
+.vscode/
+.idea/
