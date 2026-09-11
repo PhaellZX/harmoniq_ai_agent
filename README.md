@@ -30,7 +30,7 @@ Antes de iniciar, certifique-se de ter os seguintes programas instalados no sist
 
 ### 1. Clonar o Repositório
 ```bash
-git clone [https://github.com/seu-usuario/seu-repositorio.git](https://github.com/seu-usuario/seu-repositorio.git)
+git clone [https://github.com/PhaellZX/harmoniq_ai_agent.git](https://github.com/PhaellZX/harmoniq_ai_agent.git)
 cd seu-repositorio
 ```
 
