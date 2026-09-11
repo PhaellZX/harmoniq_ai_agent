@@ -1,4 +1,4 @@
-# 🎵 Agente Local de Processamento de Áudio e Cifras
+# 🎵 Harmonic AI - Agente Local de Processamento de Áudio e Cifras
 
 Aplicação desktop interativa desenvolvida em Python para manipulação, processamento de áudio e gerenciamento de cifras. Utiliza **Ollama** com **Qwen 2.5 3B** para interpretar comandos em linguagem natural e invocar ferramentas automaticamente de forma local.
 
