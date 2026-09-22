@@ -537,13 +537,19 @@ class TransposerApp(ctk.CTk):
         self.atualizar_status(f"[TOOL] Normalizando '{os.path.basename(caminho_valido)}' para {decibeis_alvo} dBFS...")
         return AudioProcessor.normalizar_audio(caminho_entrada=caminho_valido, decibeis_alvo=decibeis_alvo)
 
-    def cortar_audio(self, caminho_entrada: str, inicio_seg: float, fim_seg: float) -> str:
+    def cortar_audio(self, inicio_seg, fim_seg, caminho_entrada: str = None):
         caminho_valido = self._validar_caminho_audio(caminho_entrada)
         if not caminho_valido:
-            return "Erro: Nenhum arquivo de áudio válido foi carregado na interface para corte."
+            return "Erro: Nenhum arquivo de áudio válido foi carregado para corte."
 
-        self.atualizar_status(f"[TOOL] Cortando '{os.path.basename(caminho_valido)}' de {inicio_seg}s a {fim_seg}s...")
-        return AudioProcessor.cortar(caminho_valido, inicio_seg, fim_seg)
+        self.atualizar_status(f"[TOOL] Cortando áudio de {inicio_seg} até {fim_seg}...")
+        
+        # Repassa exatamente as variáveis sem forçar float() na entrada
+        return AudioProcessor.cortar_audio(
+            caminho_entrada=caminho_valido, 
+            inicio_seg=inicio_seg, 
+            fim_seg=fim_seg
+        )
 
     # ==========================================
     #  FERRAMENTAS DE CIFRA, VOCAL E SETLIST

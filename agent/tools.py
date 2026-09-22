@@ -92,21 +92,30 @@ FERRAMENTAS_OLLAMA = [
     }
 },
     {
-        "type": "function",
-        "function": {
-            "name": "cortar_audio",
-            "description": "Corta um trecho do arquivo de áudio informando o tempo de início e fim.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "caminho_entrada": {"type": "string", "description": "Caminho do arquivo de áudio."},
-                    "inicio_seg": {"type": "number", "description": "Tempo inicial em segundos."},
-                    "fim_seg": {"type": "number", "description": "Tempo final em segundos."}
+    "type": "function",
+    "function": {
+        "name": "cortar_audio",
+        "description": "Corta um trecho do áudio informando os tempos de início e fim. Opcionalmente aceita o caminho do arquivo de entrada.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "caminho_entrada": {
+                    "type": "string",
+                    "description": "Caminho do arquivo de áudio no sistema (opcional se já houver arquivo ativo)"
                 },
-                "required": ["inicio_seg", "fim_seg"]
-            }
+                "inicio_seg": {
+                    "type": "string",
+                    "description": "Tempo inicial no formato 'MM:SS' ou em segundos. Exemplo: '0:37'"
+                },
+                "fim_seg": {
+                    "type": "string",
+                    "description": "Tempo final no formato 'MM:SS' ou em segundos. Exemplo: '3:15'"
+                }
+            },
+            "required": ["inicio_seg", "fim_seg"]
         }
-    },
+    }
+},
     {
         "type": "function",
         "function": {

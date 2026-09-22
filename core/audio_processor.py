@@ -1,6 +1,7 @@
 import os
 import subprocess
 import warnings
+from typing import Union
 import librosa
 import numpy as np
 import soundfile as sf
@@ -9,21 +10,44 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 
 class AudioProcessor:
     @staticmethod
-    def normalizar_audio(caminho_entrada: str, caminho_saida: str = "output/saida_normalizada.wav", decibeis_alvo: float = -1.0) -> str:
+    def _converter_para_segundos(tempo: Union[str, float, int]) -> float:
+        """Converte formatos 'MM:SS', 'HH:MM:SS', strings numéricas ou floats/ints para segundos (float)."""
+        if isinstance(tempo, (int, float)):
+            return float(tempo)
+
+        if isinstance(tempo, str):
+            tempo = tempo.strip()
+            if ":" in tempo:
+                partes = tempo.split(":")
+                try:
+                    if len(partes) == 2:  # MM:SS
+                        return float(partes[0]) * 60 + float(partes[1])
+                    elif len(partes) == 3:  # HH:MM:SS
+                        return float(partes[0]) * 3600 + float(partes[1]) * 60 + float(partes[2])
+                except ValueError:
+                    return 0.0
+            try:
+                return float(tempo)
+            except ValueError:
+                return 0.0
+
+        return 0.0
+
+    @staticmethod
+    def normalizar_audio(caminho_entrada: str, caminho_saida: str = "output/saida_normalizada.wav", decibeis_alvo: Union[float, str] = -1.0) -> str:
         """Ajusta o ganho do áudio para que o pico máximo atinja o valor em dBFS especificado (evita clipping/distorção)."""
         if not os.path.exists(caminho_entrada):
             return f"Erro: O arquivo '{caminho_entrada}' não foi encontrado."
 
         try:
+            decibeis_alvo = float(decibeis_alvo)
             os.makedirs(os.path.dirname(caminho_saida), exist_ok=True)
             y, sr = librosa.load(caminho_entrada, sr=None)
 
-            # Encontra o pico máximo de amplitude
             pico_maximo = np.max(np.abs(y))
             if pico_maximo == 0:
                 return "Erro: O arquivo de áudio está completamente silencioso."
 
-            # Calcula o fator de ganho linear com base nos dB desejados
             alvo_linear = 10 ** (decibeis_alvo / 20.0)
             fator_ganho = alvo_linear / pico_maximo
             y_normalizado = y * fator_ganho
@@ -34,21 +58,24 @@ class AudioProcessor:
             return f"Erro ao normalizar o áudio: {str(e)}"
 
     @staticmethod
-    def cortar_audio(caminho_entrada: str, inicio_seg: float, fim_seg: float, caminho_saida: str = "output/saida_cortada.wav") -> str:
-        """Corta um trecho do áudio especificando o tempo inicial e final em segundos."""
+    def cortar_audio(caminho_entrada: str, inicio_seg: Union[float, str], fim_seg: Union[float, str], caminho_saida: str = "output/saida_cortada.wav") -> str:
+        """Corta um trecho do áudio especificando o tempo inicial e final em segundos ou formato MM:SS."""
         if not os.path.exists(caminho_entrada):
             return f"Erro: O arquivo '{caminho_entrada}' não foi encontrado."
 
-        if inicio_seg < 0 or fim_seg <= inicio_seg:
-            return "Erro: Parâmetros de corte inválidos. O tempo final deve ser maior que o inicial."
+        inicio = AudioProcessor._converter_para_segundos(inicio_seg)
+        fim = AudioProcessor._converter_para_segundos(fim_seg)
+
+        if inicio < 0 or fim <= inicio:
+            return f"Erro: Parâmetros de corte inválidos ({inicio_seg} até {fim_seg}). O tempo final deve ser maior que o inicial."
 
         try:
             os.makedirs(os.path.dirname(caminho_saida), exist_ok=True)
-            duracao = fim_seg - inicio_seg
-            y, sr = librosa.load(caminho_entrada, sr=None, offset=inicio_seg, duration=duracao)
+            duracao = fim - inicio
+            y, sr = librosa.load(caminho_entrada, sr=None, offset=inicio, duration=duracao)
 
             sf.write(caminho_saida, y, sr)
-            return f"Sucesso! Trecho de {inicio_seg}s até {fim_seg}s cortado com sucesso. Salvo em '{caminho_saida}'."
+            return f"Sucesso! Trecho de {inicio_seg} ({inicio}s) até {fim_seg} ({fim}s) cortado com sucesso. Salvo em '{caminho_saida}'."
         except Exception as e:
             return f"Erro ao cortar o áudio: {str(e)}"
 
@@ -94,38 +121,40 @@ class AudioProcessor:
             return f"Erro ao analisar o áudio: {str(e)}"
 
     @staticmethod
-    def mudar_tom(caminho_entrada: str, semitonos: float, caminho_saida: str = "output/saida_transposta.wav") -> str:
+    def mudar_tom(caminho_entrada: str, semitonos: Union[float, str], caminho_saida: str = "output/saida_transposta.wav") -> str:
         """Altera o tom (pitch shift) de um áudio sem alterar a velocidade."""
         if not os.path.exists(caminho_entrada):
             return f"Erro: O arquivo '{caminho_entrada}' não foi encontrado."
 
         try:
+            semitonos_val = float(semitonos)
             os.makedirs(os.path.dirname(caminho_saida), exist_ok=True)
             y, sr = librosa.load(caminho_entrada, sr=None)
-            y_shifted = librosa.effects.pitch_shift(y=y, sr=sr, n_steps=semitonos)
+            y_shifted = librosa.effects.pitch_shift(y=y, sr=sr, n_steps=semitonos_val)
             sf.write(caminho_saida, y_shifted, sr)
-            return f"Sucesso! Áudio transposto em {semitonos} semitonos e salvo em '{caminho_saida}'."
+            return f"Sucesso! Áudio transposto em {semitonos_val} semitonos e salvo em '{caminho_saida}'."
         except Exception as e:
             return f"Erro ao alterar o tom do áudio: {str(e)}"
 
     @staticmethod
-    def alterar_velocidade(caminho_entrada: str, fator_frequencia: float, caminho_saida: str = "output/saida_velocidade.wav") -> str:
+    def alterar_velocidade(caminho_entrada: str, fator_frequencia: Union[float, str], caminho_saida: str = "output/saida_velocidade.wav") -> str:
         """Altera a velocidade (time stretch) de um áudio sem alterar o tom."""
         if not os.path.exists(caminho_entrada):
             return f"Erro: O arquivo '{caminho_entrada}' não foi encontrado."
 
-        if fator_frequencia <= 0:
-            return "Erro: O fator de velocidade deve ser maior que zero."
-
         try:
+            fator_val = float(fator_frequencia)
+            if fator_val <= 0:
+                return "Erro: O fator de velocidade deve ser maior que zero."
+
             os.makedirs(os.path.dirname(caminho_saida), exist_ok=True)
             y, sr = librosa.load(caminho_entrada, sr=None)
-            y_stretched = librosa.effects.time_stretch(y=y, rate=fator_frequencia)
+            y_stretched = librosa.effects.time_stretch(y=y, rate=fator_val)
             sf.write(caminho_saida, y_stretched, sr)
             
-            percentual = int((fator_frequencia - 1.0) * 100)
+            percentual = int((fator_val - 1.0) * 100)
             status_str = f"{abs(percentual)}% mais rápido" if percentual >= 0 else f"{abs(percentual)}% mais lento"
-            return f"Sucesso! Velocidade alterada em {fator_frequencia}x ({status_str}). Salvo em '{caminho_saida}'."
+            return f"Sucesso! Velocidade alterada em {fator_val}x ({status_str}). Salvo em '{caminho_saida}'."
         except Exception as e:
             return f"Erro ao alterar a velocidade do áudio: {str(e)}"
 
