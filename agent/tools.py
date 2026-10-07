@@ -3,7 +3,7 @@ FERRAMENTAS_OLLAMA = [
         "type": "function",
         "function": {
             "name": "mudar_tom_audio",
-            "description": "Altera a afinação/tom do áudio por semitonos. ATENÇÃO À MATEMÁTICA DOS INTERVALOS: +1 semitom = meio tom (ex: C para C#), +2 semitonos = um tom inteiro (ex: C para D), +3 semitonos = uma terça menor (ex: C para D#).",
+            "description": "Altera a afinação/tom de um arquivo de áudio por semitonos.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -13,15 +13,15 @@ FERRAMENTAS_OLLAMA = [
                     },
                     "semitonos": {
                         "type": "integer",
-                        "description": "Número exato de semitonos (ex: 2 para subir um tom inteiro)."
+                        "description": "Quantidade de semitonos. Use valor negativo para baixar (ex: -1 para baixar meio tom) e positivo para subir (ex: 1 para subir meio tom)."
                     },
                     "tom_origem": {
                         "type": "string",
-                        "description": "Tom original da música (ex: 'C')."
+                        "description": "Tom original atual do áudio (ex: 'Ab', 'C', 'G#')."
                     },
                     "tom_destino": {
                         "type": "string",
-                        "description": "Tom de destino correto baseado nos semitonos (ex: se origem C e semitonos 2, destino é D)."
+                        "description": "Tom final desejado após aplicar os semitonos (ex: de Ab com -1 semitom o destino é G)."
                     }
                 },
                 "required": ["semitonos"]
