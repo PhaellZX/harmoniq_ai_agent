@@ -1,58 +1,58 @@
-FERRAMENTAS_OLLAMA = [
+OLLAMA_TOOLS = [
     {
         "type": "function",
         "function": {
-            "name": "mudar_tom_audio",
-            "description": "Altera a afinação/tom de um arquivo de áudio por semitonos.",
+            "name": "change_audio_pitch",
+            "description": "Changes the key/pitch of an audio file by semitones.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "caminho_entrada": {
+                    "input_path": {
                         "type": "string",
-                        "description": "Caminho do arquivo de áudio."
+                        "description": "Path to the audio file."
                     },
-                    "semitonos": {
+                    "semitones": {
                         "type": "integer",
-                        "description": "Quantidade de semitonos. Use valor negativo para baixar (ex: -1 para baixar meio tom) e positivo para subir (ex: 1 para subir meio tom)."
+                        "description": "Number of semitones. Use a negative integer to lower pitch (e.g., -1 for half step down) and positive to raise pitch (e.g., 1 for half step up)."
                     },
-                    "tom_origem": {
+                    "source_key": {
                         "type": "string",
-                        "description": "Tom original atual do áudio (ex: 'Ab', 'C', 'G#')."
+                        "description": "Current original key of the audio (e.g., 'Ab', 'C', 'G#')."
                     },
-                    "tom_destino": {
+                    "target_key": {
                         "type": "string",
-                        "description": "Tom final desejado após aplicar os semitonos (ex: de Ab com -1 semitom o destino é G)."
+                        "description": "Target key after applying semitones (e.g., from Ab with -1 semitone the target key is G)."
                     }
                 },
-                "required": ["semitonos"]
+                "required": ["semitones"]
             }
         }
     },
     {
         "type": "function",
         "function": {
-            "name": "alterar_velocidade_audio",
-            "description": "Altera o tempo/velocidade da execução do áudio sem alterar a afinação.",
+            "name": "change_audio_speed",
+            "description": "Changes the tempo/speed of the audio playback without altering the pitch.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "caminho_entrada": {"type": "string", "description": "Caminho do arquivo de áudio."},
-                    "fator_frequencia": {"type": "number", "description": "Fator de velocidade (ex: 1.1 para mais rápido, 0.9 para mais lento)."}
+                    "input_path": {"type": "string", "description": "Path to the audio file."},
+                    "speed_factor": {"type": "number", "description": "Speed factor (e.g., 1.1 for faster, 0.9 for slower)."}
                 },
-                "required": ["fator_frequencia"]
+                "required": ["speed_factor"]
             }
         }
     },
     {
         "type": "function",
         "function": {
-            "name": "separar_stems_audio",
-            "description": "Separa faixas e instrumentos do áudio (vocal, bateria, baixo, acompanhamento).",
+            "name": "separate_audio_stems",
+            "description": "Separates audio stems and instruments (vocals, drums, bass, accompaniment).",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "caminho_entrada": {"type": "string", "description": "Caminho do arquivo de áudio."},
-                    "modo": {"type": "string", "description": "Modo de separação: '2stems' (vocal/playback) ou '4stems'."}
+                    "input_path": {"type": "string", "description": "Path to the audio file."},
+                    "mode": {"type": "string", "description": "Separation mode: '2stems' (vocals/backing track) or '4stems'."}
                 }
             }
         }
@@ -60,71 +60,71 @@ FERRAMENTAS_OLLAMA = [
     {
         "type": "function",
         "function": {
-            "name": "detectar_tom_e_bpm_audio",
-            "description": "Analisa e detecta o tom musical e o andamento (BPM) de um arquivo de áudio.",
+            "name": "detect_audio_key_and_bpm",
+            "description": "Analyzes and detects the musical key and tempo (BPM) of an audio file.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "caminho_entrada": {"type": "string", "description": "Caminho do arquivo de áudio."}
+                    "input_path": {"type": "string", "description": "Path to the audio file."}
                 }
             }
         }
     },
-   {
-    "type": "function",
-    "function": {
-        "name": "normalizar_audio",
-        "description": "Ajusta e equaliza o volume/ganho do áudio. Use SEMPRE que o usuário disser 'normalize', 'normalizar', 'ajuste o volume' ou 'equalize o áudio'.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "caminho_entrada": {
-                    "type": "string",
-                    "description": "Caminho do arquivo de áudio."
-                },
-                "decibeis_alvo": {
-                    "type": "number",
-                    "description": "Volume alvo em dBFS (padrão -14.0)."
-                }
-            },
-            "required": []
-        }
-    }
-},
-    {
-    "type": "function",
-    "function": {
-        "name": "cortar_audio",
-        "description": "Corta um trecho do áudio informando os tempos de início e fim. Opcionalmente aceita o caminho do arquivo de entrada.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "caminho_entrada": {
-                    "type": "string",
-                    "description": "Caminho do arquivo de áudio no sistema (opcional se já houver arquivo ativo)"
-                },
-                "inicio_seg": {
-                    "type": "string",
-                    "description": "Tempo inicial no formato 'MM:SS' ou em segundos. Exemplo: '0:37'"
-                },
-                "fim_seg": {
-                    "type": "string",
-                    "description": "Tempo final no formato 'MM:SS' ou em segundos. Exemplo: '3:15'"
-                }
-            },
-            "required": ["inicio_seg", "fim_seg"]
-        }
-    }
-},
     {
         "type": "function",
         "function": {
-            "name": "baixar_audio_link",
-            "description": "Baixa o áudio de uma URL/link do YouTube ou drive para uso local.",
+            "name": "normalize_audio",
+            "description": "Adjusts and normalizes audio gain/volume. ALWAYS use when the user asks to 'normalize', 'adjust volume', or 'equalize audio'.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "url": {"type": "string", "description": "URL/link do vídeo ou áudio."}
+                    "input_path": {
+                        "type": "string",
+                        "description": "Path to the audio file."
+                    },
+                    "target_db": {
+                        "type": "number",
+                        "description": "Target volume in dBFS (default is -14.0)."
+                    }
+                },
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "trim_audio",
+            "description": "Trims an audio segment given start and end times. Optionally accepts input audio path.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "input_path": {
+                        "type": "string",
+                        "description": "Path to the audio file on system (optional if an active file is already loaded)."
+                    },
+                    "start_sec": {
+                        "type": "string",
+                        "description": "Start time in 'MM:SS' format or seconds. Example: '0:37'"
+                    },
+                    "end_sec": {
+                        "type": "string",
+                        "description": "End time in 'MM:SS' format or seconds. Example: '3:15'"
+                    }
+                },
+                "required": ["start_sec", "end_sec"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "download_audio_link",
+            "description": "Downloads audio from a YouTube or Google Drive URL/link for local processing.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "url": {"type": "string", "description": "URL/link of the video or audio source."}
                 },
                 "required": ["url"]
             }
@@ -133,33 +133,33 @@ FERRAMENTAS_OLLAMA = [
     {
         "type": "function",
         "function": {
-            "name": "transpor_cifra_texto",
-            "description": "Transpõe o texto de uma cifra musical alterando os acordes de um tom para outro.",
+            "name": "transpose_chord_text",
+            "description": "Transposes text-based chord charts by changing chords from one key to another.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "texto_cifra": {"type": "string", "description": "Texto completo da cifra."},
-                    "semitonos": {"type": "integer", "description": "Quantidade de semitonos."},
-                    "tom_origem": {"type": "string", "description": "Tom atual da cifra."},
-                    "tom_destino": {"type": "string", "description": "Tom desejado da cifra."}
+                    "chord_text": {"type": "string", "description": "Full chord chart text."},
+                    "semitones": {"type": "integer", "description": "Number of semitones."},
+                    "source_key": {"type": "string", "description": "Current chord key."},
+                    "target_key": {"type": "string", "description": "Target chord key."}
                 },
-                "required": ["texto_cifra"]
+                "required": ["chord_text"]
             }
         }
     },
     {
         "type": "function",
         "function": {
-            "name": "sugerir_tom_ideal_vocal",
-            "description": "Analisa a tessitura vocal do cantor em relação à música para sugerir o tom ideal.",
+            "name": "suggest_vocal_key",
+            "description": "Analyzes the singer's vocal range against the song pitch to suggest the ideal key.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "tom_original": {"type": "string", "description": "Tom original da música."},
-                    "nota_min_musica": {"type": "string", "description": "Nota mais grave da música."},
-                    "nota_max_musica": {"type": "string", "description": "Nota mais aguda da música."},
-                    "tipo_voz_ou_min_cantor": {"type": "string", "description": "Tipo de voz ou nota mínima do cantor."},
-                    "max_cantor": {"type": "string", "description": "Nota máxima do cantor."}
+                    "original_key": {"type": "string", "description": "Original key of the song."},
+                    "song_min_note": {"type": "string", "description": "Lowest note in the song."},
+                    "song_max_note": {"type": "string", "description": "Highest note in the song."},
+                    "vocal_type_or_min_singer": {"type": "string", "description": "Vocal type or singer's lowest note."},
+                    "singer_max_note": {"type": "string", "description": "Singer's highest note."}
                 }
             }
         }
@@ -167,64 +167,64 @@ FERRAMENTAS_OLLAMA = [
     {
         "type": "function",
         "function": {
-            "name": "gerar_setlist_formatada",
-            "description": "Gera uma setlist organizada e formatada para os ministros e músicos do culto.",
+            "name": "generate_formatted_setlist",
+            "description": "Generates a clean, formatted setlist for worship ministers and band musicians.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "json_musicas_str": {"type": "string", "description": "String JSON contendo a lista de músicas e detalhes."},
-                    "titulo": {"type": "string", "description": "Título do culto/ensaio."}
+                    "songs_json_str": {"type": "string", "description": "JSON string containing songs list and metadata."},
+                    "title": {"type": "string", "description": "Service or rehearsal title."}
                 },
-                "required": ["json_musicas_str"]
+                "required": ["songs_json_str"]
             }
         }
     },
     {
         "type": "function",
         "function": {
-            "name": "exportar_audio",
-            "description": "Converte e exporta o arquivo de áudio atual/modificado para o formato especificado (WAV ou MP3). Não altera afinação ou velocidade.",
+            "name": "export_audio",
+            "description": "Converts and exports the current or modified audio file to a specified format (WAV or MP3). Does not alter pitch or tempo.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "formato": {
+                    "target_format": {
                         "type": "string",
-                        "description": "Formato de saída desejado ('wav' ou 'mp3')"
+                        "description": "Desired output format ('wav' or 'mp3')."
                     }
                 },
-                "required": ["formato"]
+                "required": ["target_format"]
             }
         }
     },
     {
         "type": "function",
         "function": {
-            "name": "exportar_cifra_pdf",
-            "description": "Gera um arquivo PDF estilizado contendo a cifra transposta e os dados para ensaio.",
+            "name": "export_chord_pdf",
+            "description": "Generates a styled PDF file containing the transposed chord chart and rehearsal metadata.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "titulo": {"type": "string", "description": "Título da música."},
-                    "tom": {"type": "string", "description": "Tom da cifra."},
-                    "texto_cifra": {"type": "string", "description": "Texto da cifra."},
-                    "ministro": {"type": "string", "description": "Nome do ministro ou líder de louvor."},
-                    "bpm": {"type": "string", "description": "Andamento em BPM."}
+                    "title": {"type": "string", "description": "Song title."},
+                    "key": {"type": "string", "description": "Song key."},
+                    "chord_text": {"type": "string", "description": "Chord chart text content."},
+                    "minister": {"type": "string", "description": "Worship leader or minister name."},
+                    "bpm": {"type": "string", "description": "Tempo in BPM."}
                 },
-                "required": ["texto_cifra"]
+                "required": ["chord_text"]
             }
         }
     },
     {
         "type": "function",
         "function": {
-            "name": "gerar_click_track",
-            "description": "Gera um arquivo de áudio de metrônomo/click track personalizado com BPM, fórmula de compasso e duração.",
+            "name": "generate_click_track",
+            "description": "Generates a custom metronome/click track audio file with specified BPM, time signature, and duration.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "bpm": {"type": "integer", "description": "Andamento em BPM (ex: 120, 70)."},
-                    "formula": {"type": "string", "description": "Fórmula de compasso (ex: '4/4', '3/4', '6/8')."},
-                    "duracao_minutos": {"type": "number", "description": "Duração total do áudio em minutos."}
+                    "bpm": {"type": "integer", "description": "Tempo in BPM (e.g., 120, 70)."},
+                    "time_signature": {"type": "string", "description": "Time signature (e.g., '4/4', '3/4', '6/8')."},
+                    "duration_minutes": {"type": "number", "description": "Total audio duration in minutes."}
                 }
             }
         }

@@ -1,11 +1,11 @@
 import re
 
 class ChordTransposer:
-    # Mapeamento cromático com sustenidos e bemóis
-    NOTAS_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
-    NOTAS_FLAT  = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
+    # Chromatic mapping using sharps and flats
+    SHARP_NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+    FLAT_NOTES  = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
 
-    MAP_POSICAO = {
+    POSITION_MAP = {
         'C': 0, 'C#': 1, 'DB': 1,
         'D': 2, 'D#': 3, 'EB': 3,
         'E': 4,
@@ -15,82 +15,91 @@ class ChordTransposer:
         'B': 11
     }
 
-    # Regex para capturar notas fundamentais (ex: C#, Bb, F)
-    REGEX_NOTA = re.compile(r'^[A-G](?:#|b)?')
+    # Regex to capture root note (e.g., C#, Bb, F)
+    NOTE_REGEX = re.compile(r'^[A-G](?:#|b)?')
 
-    # Regex para identificar se uma linha do texto contém predominantemente acordes
-    REGEX_ACORDE = re.compile(r'\b[A-G](?:#|b)?(?:m|maj|min|dim|aug|sus\d?|add\d?|\d)*(?:\/[A-G](?:#|b)?)?\b')
-
-    @classmethod
-    def _transpor_nota(cls, nota: str, semitonos: int, usar_bemoles: bool = False) -> str:
-        nota_upper = nota.upper()
-        if nota_upper not in cls.MAP_POSICAO:
-            return nota
-
-        pos_original = cls.MAP_POSICAO[nota_upper]
-        nova_pos = (pos_original + semitonos) % 12
-
-        escala = cls.NOTAS_FLAT if usar_bemoles else cls.NOTAS_SHARP
-        nova_nota = escala[nova_pos]
-
-        # Mantém a capitalização original se necessário
-        return nova_nota
+    # Regex to identify if a line contains predominantly chords
+    CHORD_REGEX = re.compile(r'\b[A-G](?:#|b)?(?:m|maj|min|dim|aug|sus\d?|add\d?|\d)*(?:\/[A-G](?:#|b)?)?\b')
 
     @classmethod
-    def _transpor_acorde_individual(cls, acorde: str, semitonos: int, usar_bemoles: bool = False) -> str:
-        """Transpõe a nota fundamental e a nota do baixo (se houver inversão com barra '/')."""
-        if '/' in acorde:
-            partes = acorde.split('/')
-            principal = cls._transpor_acorde_individual(partes[0], semitonos, usar_bemoles)
-            baixo = cls._transpor_acorde_individual(partes[1], semitonos, usar_bemoles)
-            return f"{principal}/{baixo}"
+    def _transpose_note(cls, note: str, semitones: int, use_flats: bool = False) -> str:
+        note_upper = note.upper()
+        if note_upper not in cls.POSITION_MAP:
+            return note
 
-        # Encontra a nota raiz no início do acorde
-        match = cls.REGEX_NOTA.match(acorde)
+        original_pos = cls.POSITION_MAP[note_upper]
+        new_pos = (original_pos + semitones) % 12
+
+        scale = cls.FLAT_NOTES if use_flats else cls.SHARP_NOTES
+        return scale[new_pos]
+
+    @classmethod
+    def _transpose_single_chord(cls, chord: str, semitones: int, use_flats: bool = False) -> str:
+        """Transposes root note and bass note (if slash chord exists '/')."""
+        if '/' in chord:
+            parts = chord.split('/')
+            root_part = cls._transpose_single_chord(parts[0], semitones, use_flats)
+            bass_part = cls._transpose_single_chord(parts[1], semitones, use_flats)
+            return f"{root_part}/{bass_part}"
+
+        # Match root note at the beginning of the chord string
+        match = cls.NOTE_REGEX.match(chord)
         if not match:
-            return acorde
+            return chord
 
-        nota_raiz = match.group(0)
-        sufixo = acorde[len(nota_raiz):]
-        nova_raiz = cls._transpor_nota(nota_raiz, semitonos, usar_bemoles)
+        root_note = match.group(0)
+        suffix = chord[len(root_note):]
+        new_root = cls._transpose_note(root_note, semitones, use_flats)
 
-        return nova_raiz + sufixo
+        return new_root + suffix
 
+    @classmethod
+    def transpose_text(cls, chord_text: str, semitones: int = 0, source_key: str = None, target_key: str = None) -> str:
+        """
+        Transposes full chord chart text while preserving spaces and layout.
+        Accepts direct semitone steps or source and target key names.
+        """
+        # If source and target keys are provided (e.g., C to D), calculate semitones
+        if source_key and target_key:
+            source_clean = source_key.upper().replace("MAJOR", "").replace("MINOR", "").replace("MAIOR", "").replace("MENOR", "").strip()
+            target_clean = target_key.upper().replace("MAJOR", "").replace("MINOR", "").replace("MAIOR", "").replace("MENOR", "").strip()
+
+            if source_clean in cls.POSITION_MAP and target_clean in cls.POSITION_MAP:
+                semitones = cls.POSITION_MAP[target_clean] - cls.POSITION_MAP[source_clean]
+
+        if semitones == 0:
+            return chord_text
+
+        # Determine flat/sharp preference based on target key
+        use_flats = "b" in target_key.lower() if target_key else False
+
+        lines = chord_text.split('\n')
+        transposed_lines = []
+
+        for line in lines:
+            # Replace chords while attempting to maintain visual alignment
+            def replace_match(match):
+                original_chord = match.group(0)
+                new_chord = cls._transpose_single_chord(original_chord, semitones, use_flats)
+                
+                # Adjust spacing if chord length changes to keep alignment with lyrics
+                len_diff = len(original_chord) - len(new_chord)
+                if len_diff > 0:
+                    return new_chord + (" " * len_diff)
+                return new_chord
+
+            processed_line = cls.CHORD_REGEX.sub(replace_match, line)
+            transposed_lines.append(processed_line)
+
+        return "\n".join(transposed_lines)
+
+    # =========================================================================
+    # BACKWARD COMPATIBILITY ALIASES
+    # =========================================================================
     @classmethod
     def transpor_cifra_texto(cls, texto_cifra: str, semitonos: int = 0, tom_origem: str = None, tom_destino: str = None) -> str:
-        """
-        Transpõe todo o texto de uma cifra preservando espaços e formatação.
-        Aceita a variação em semitonos direta ou o tom de origem e destino.
-        """
-        # Se foram passados tons em texto (ex: C para D), calcula os semitonos
-        if tom_origem and tom_destino:
-            origem_clean = tom_origem.upper().replace("MAIOR", "").replace("MENOR", "").strip()
-            destino_clean = tom_destino.upper().replace("MAIOR", "").replace("MENOR", "").strip()
+        return cls.transpose_text(chord_text=texto_cifra, semitones=semitonos, source_key=tom_origem, target_key=tom_destino)
 
-            if origem_clean in cls.MAP_POSICAO and destino_clean in cls.MAP_POSICAO:
-                semitonos = cls.MAP_POSICAO[destino_clean] - cls.MAP_POSICAO[origem_clean]
-
-        if semitonos == 0:
-            return texto_cifra
-
-        # Determina preferências de acidentes (bemóis ou sustenidos) com base no destino
-        usar_bemoles = "b" in tom_destino.lower() if tom_destino else False
-
-        linhas = texto_cifra.split('\n')
-        linhas_transpostas = []
-
-        for linha in linhas:
-            # Substitui cada acorde mantendo o alinhamento de colunas/espaços
-            def substituir(match):
-                acorde_original = match.group(0)
-                acorde_novo = cls._transpor_acorde_individual(acorde_original, semitonos, usar_bemoles)
-                # Ajusta espaçamento se o tamanho do acorde mudar para não desalinhá-lo da letra
-                diferenca_tamanho = len(acorde_original) - len(acorde_novo)
-                if diferenca_tamanho > 0:
-                    return acorde_novo + (" " * diferenca_tamanho)
-                return acorde_novo
-
-            linha_processada = cls.REGEX_ACORDE.sub(substituir, linha)
-            linhas_transpostas.append(linha_processada)
-
-        return "\n".join(linhas_transpostas)
+    @classmethod
+    def transpor_texto(cls, texto_cifra: str, semitonos: int = 0, tom_origem: str = None, tom_destino: str = None) -> str:
+        return cls.transpose_text(chord_text=texto_cifra, semitones=semitonos, source_key=tom_origem, target_key=tom_destino)

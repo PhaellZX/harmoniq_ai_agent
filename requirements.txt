@@ -1,23 +1,24 @@
-# --- LLM & Agente Local ---
+# --- Local LLM and Agent ---
 ollama>=0.1.0
 pydantic>=2.0.0
 
-# --- Processamento de Áudio & Análise ---
+# --- Audio Processing & Analysis ---
 librosa>=0.10.0
 soundfile>=0.12.0
 pydub>=0.25.1
 numpy>=1.24.0
 
-# --- Separação de Stems ---
+# --- Stem Separation ---
 demucs>=4.0.0
 
-# --- Download de Áudio ---
+# --- Audio Download ---
 yt-dlp>=2024.0.0
 
-# --- Geração de PDF & Documentos ---
+# ---PDF and Document Generation ---
 reportlab>=4.0.0
 
-# --- Interface Gráfica ---
+# --- Graphical Interface ---
 customtkinter>=5.2.0
-pillow>=10.0.0python-dotenv
+pillow>=10.0.0
+python-dotenv>=0.19.0
 weasyprint

@@ -5,10 +5,10 @@ from tkinter import ttk, filedialog, messagebox
 import customtkinter as ctk
 import unicodedata
 
-from agent.tools import FERRAMENTAS_OLLAMA
+from agent.tools import OLLAMA_TOOLS
 from agent.client import OllamaAgentManager
 
-# Importações dos módulos internos do projeto
+# Internal core module imports
 from core.audio_processor import AudioProcessor
 from core.chord_transposer import ChordTransposer
 from core.vocal_range import VocalRangeAnalyzer
@@ -16,12 +16,12 @@ from core.setlist import SetlistFormatter
 from core.downloader import AudioDownloader
 from utils.export_manager import ExportManager
 
-# Configuração global de tema
+# Global theme configuration
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
 
 class TransposerApp(ctk.CTk):
-    NOTAS_MAP = {
+    NOTES_MAP = {
         'C': 0, 'C#': 1, 'DB': 1, 'D': 2, 'D#': 3, 'EB': 3,
         'E': 4, 'F': 5, 'F#': 6, 'GB': 6, 'G': 7, 'G#': 8,
         'AB': 8, 'A': 9, 'A#': 10, 'BB': 10, 'B': 11
@@ -29,44 +29,44 @@ class TransposerApp(ctk.CTk):
 
     def __init__(self):
         super().__init__()
-        self.title("Harmoniq AI — Assistente de Produção Musical")
+        self.title("Harmoniq AI — Music Production Assistant")
         self.geometry("900x650")
         self.minsize(800, 550)
 
-        # Variáveis de Estado
-        self.caminho_arquivo: str = ""
-        self.caminho_audio_atual: str = ""
-        self.tom_atual: str = "Não detectado"
-        self.bpm_atual = None
+        # State Variables
+        self.file_path: str = ""
+        self.current_audio_path: str = ""
+        self.current_key: str = "Not detected"
+        self.current_bpm = None
 
-        self._construir_interface()
-        self._inicializar_agente()
+        self._build_interface()
+        self._initialize_agent()
 
     # ==========================================
-    #  MÉTODOS AUXILIARES E INTERFACE
+    #  HELPER METHODS AND INTERFACE BUILDER
     # ==========================================
-    def _construir_interface(self):
-        # 1. Cabeçalho / Banner
+    def _build_interface(self):
+        # 1. Header / Banner
         header_frame = ctk.CTkFrame(self, fg_color="#1E1E2E", corner_radius=10)
         header_frame.pack(fill="x", padx=15, pady=(15, 5))
 
-        lbl_titulo = ctk.CTkLabel(
+        lbl_title = ctk.CTkLabel(
             header_frame, 
             text="🎵 HARMONIQ AI", 
             font=ctk.CTkFont(size=20, weight="bold"),
             text_color="#89B4FA"
         )
-        lbl_titulo.pack(side="left", padx=15, pady=12)
+        lbl_title.pack(side="left", padx=15, pady=12)
 
-        lbl_subtitulo = ctk.CTkLabel(
+        lbl_subtitle = ctk.CTkLabel(
             header_frame, 
-            text="Copiloto Local de Processamento Musical & Cifras", 
+            text="Local Copilot for Music Processing & Chord Charts", 
             font=ctk.CTkFont(size=12),
             text_color="#A6ADC8"
         )
-        lbl_subtitulo.pack(side="left", padx=5, pady=12)
+        lbl_subtitle.pack(side="left", padx=5, pady=12)
 
-        # 2. Área Central (Chat / Console Log)
+        # 2. Central Area (Chat / Console Log)
         self.log_text = ctk.CTkTextbox(
             self, 
             corner_radius=10, 
@@ -76,489 +76,493 @@ class TransposerApp(ctk.CTk):
         )
         self.log_text.pack(expand=True, fill="both", padx=15, pady=10)
         
-        self.log_text.insert("1.0", "Sistema pronto! Modelo local conectado com suporte a áudio, cifras e metrônomo.\n" + ("—"*60) + "\n\n")
+        self.log_text.insert("1.0", "System ready! Local model connected with audio, chord chart, and metronome support.\n" + ("—"*60) + "\n\n")
         self.log_text.configure(state="disabled")
 
-        # 3. Painel de Entrada de Comandos e Ações
+        # 3. Command Input Panel & Action Buttons
         input_frame = ctk.CTkFrame(self, fg_color="transparent")
         input_frame.pack(fill="x", padx=15, pady=(0, 10))
 
         self.entry_prompt = ctk.CTkEntry(
             input_frame, 
-            placeholder_text="Digite um comando (ex: 'Mude o tom para D' ou 'Gere um metrônomo 120 BPM')...",
+            placeholder_text="Enter a command (e.g., 'Lower pitch by 1 semitone' or 'Generate click track at 120 BPM')...",
             height=42,
             corner_radius=8,
             font=ctk.CTkFont(size=13)
         )
         self.entry_prompt.pack(side="left", expand=True, fill="x", padx=(0, 10))
-        self.entry_prompt.bind("<Return>", lambda e: self._enviar_prompt_agente())
+        self.entry_prompt.bind("<Return>", lambda e: self._send_agent_prompt())
 
-        btn_carregar = ctk.CTkButton(
+        btn_load = ctk.CTkButton(
             input_frame, 
-            text="📂 Selecionar Áudio", 
-            command=self._selecionar_arquivo,
+            text="📂 Select Audio", 
+            command=self._select_file,
             height=42,
             fg_color="#313244",
             hover_color="#45475A",
             font=ctk.CTkFont(size=13, weight="bold")
         )
-        btn_carregar.pack(side="right", padx=(5, 0))
+        btn_load.pack(side="right", padx=(5, 0))
 
-        btn_enviar = ctk.CTkButton(
+        btn_send = ctk.CTkButton(
             input_frame, 
-            text="Enviar ➔", 
-            command=self._enviar_prompt_agente,
+            text="Send ➔", 
+            command=self._send_agent_prompt,
             height=42,
             fg_color="#89B4FA",
             text_color="#11111B",
             hover_color="#B4BEFE",
             font=ctk.CTkFont(size=13, weight="bold")
         )
-        btn_enviar.pack(side="right")
+        btn_send.pack(side="right")
 
-        # 4. Barra de Status Inferior
+        # 4. Bottom Status Bar
         status_frame = ctk.CTkFrame(self, height=30, corner_radius=0, fg_color="#11111B")
         status_frame.pack(side="bottom", fill="x")
 
         self.status_label = ctk.CTkLabel(
             status_frame, 
-            text="Status: Aguardando comandos...", 
+            text="Status: Awaiting commands...", 
             font=ctk.CTkFont(size=11),
             text_color="#A6ADC8",
             anchor="w"
         )
         self.status_label.pack(side="left", padx=15, pady=2)
 
-    def _inicializar_agente(self):
+    def _initialize_agent(self):
         try:
             tools = [
-                self.mudar_tom_audio,
-                self.alterar_velocidade_audio,
-                self.separar_stems_audio,
-                self.detectar_tom_e_bpm_audio,
-                self.normalizar_audio,
-                self.cortar_audio,
-                self.transpor_cifra_texto,
-                self.sugerir_tom_ideal_vocal,
-                self.gerar_setlist_formatada,
-                self.baixar_audio_link,
-                self.exportar_audio,
-                self.exportar_cifra_pdf,
-                self.gerar_click_track
+                self.change_audio_pitch,
+                self.change_audio_speed,
+                self.separate_audio_stems,
+                self.detect_audio_key_and_bpm,
+                self.normalize_audio,
+                self.trim_audio,
+                self.transpose_chord_text,
+                self.suggest_vocal_key,
+                self.generate_formatted_setlist,
+                self.download_audio_link,
+                self.export_audio,
+                self.export_chord_pdf,
+                self.generate_click_track
             ]
             self.agent_manager = OllamaAgentManager(tools_list=tools, model_name="qwen2.5:3b")
-            self.log("Sistema pronto! Modelo Ollama conectado com suporte a ferramentas de áudio, cifra, voz e setlists.")
+            self.log("System ready! Ollama model connected supporting audio, chord chart, vocal, and setlist tools.")
         except Exception as e:
-            messagebox.showerror("Erro Ollama", f"Falha ao conectar ao Ollama local:\n{e}")
+            messagebox.showerror("Ollama Error", f"Failed to connect to local Ollama instance:\n{e}")
 
-    def log(self, mensagem: str):
-        """Escreve mensagens no console/chat da interface."""
+    def log(self, message: str):
+        """Writes messages to the interface console/chat box."""
         self.log_text.configure(state="normal")
-        self.log_text.insert("end", mensagem + "\n")
+        self.log_text.insert("end", message + "\n")
         self.log_text.see("end")
         self.log_text.configure(state="disabled")
 
-    def atualizar_status(self, texto: str):
-        """Atualiza o texto da barra de status inferior."""
-        self.status_label.configure(text=f"Status: {texto}")
+    def update_status(self, text: str):
+        """Updates status text on the bottom bar."""
+        self.status_label.configure(text=f"Status: {text}")
         self.update_idletasks()
 
-    def _selecionar_arquivo(self):
-        caminho = filedialog.askopenfilename(
-            title="Selecione o arquivo de áudio",
-            filetypes=[("Arquivos de Áudio", "*.mp3 *.wav *.flac *.ogg *.m4a")]
+    def _select_file(self):
+        path = filedialog.askopenfilename(
+            title="Select Audio File",
+            filetypes=[("Audio Files", "*.mp3 *.wav *.flac *.ogg *.m4a")]
         )
-        if caminho:
-            self.caminho_arquivo = caminho
-            self.caminho_audio_atual = caminho
-            self.log(f"[Arquivo Carregado]: {caminho}")
-            self.atualizar_status(f"Áudio carregado: {os.path.basename(caminho)}")
+        if path:
+            self.file_path = path
+            self.current_audio_path = path
+            self.log(f"[File Loaded]: {path}")
+            self.update_status(f"Audio loaded: {os.path.basename(path)}")
 
-            # Atualiza o contexto do agente no instante do carregamento do arquivo
+            # Updates agent context upon file selection
             if hasattr(self, 'agent_manager') and self.agent_manager:
-                self.agent_manager.atualizar_contexto_sistema(
-                    caminho_audio=caminho,
-                    tom=self.tom_atual,
-                    bpm=self.bpm_atual
+                self.agent_manager.update_system_context(
+                    audio_path=path,
+                    key=self.current_key,
+                    bpm=self.current_bpm
                 )
 
-    def _enviar_prompt_agente(self):
+    def _send_agent_prompt(self):
         prompt = self.entry_prompt.get().strip()
         if not prompt:
             return
 
-        self.log(f"\n[Você]: {prompt}")
+        self.log(f"\n[You]: {prompt}")
         self.entry_prompt.delete(0, tk.END)
-        self.atualizar_status("Agente processando...")
+        self.update_status("Agent processing...")
         self.update_idletasks()
 
         try:
-            print("\n--- INICIANDO ENVIO PARA O OLLAMA ---")
-            resposta = self.agent_manager.enviar_mensagem(prompt)
-            print("DEBUG RESPOSTA BRUTA OLLAMA:", resposta)
-            self._processar_resposta_agente(resposta=resposta, mensagem_usuario=prompt)
+            print("\n--- SENDING REQUEST TO OLLAMA ---")
+            response = self.agent_manager.send_message(prompt)
+            print("DEBUG RAW OLLAMA RESPONSE:", response)
+            self._process_agent_response(response=response, user_message=prompt)
         except Exception as e:
             import traceback
             traceback.print_exc()
-            self.log(f"[Erro Agente]: {e}")
-            self.atualizar_status("Erro na execução.")
+            self.log(f"[Agent Error]: {e}")
+            self.update_status("Execution error.")
 
-    def _normalizar_texto(self, texto: str) -> str:
-        if not texto:
+    def _normalize_text(self, text: str) -> str:
+        if not text:
             return ""
-        texto = unicodedata.normalize('NFD', texto)
-        texto = ''.join(c for c in texto if unicodedata.category(c) != 'Mn')
-        return texto.lower().strip()
+        text = unicodedata.normalize('NFD', text)
+        text = ''.join(c for c in text if unicodedata.category(c) != 'Mn')
+        return text.lower().strip()
 
-    def _processar_resposta_agente(self, resposta, mensagem_usuario: str = ""):
-        ferramentas_map = {
-            "mudar_tom_audio": self.mudar_tom_audio,
-            "alterar_velocidade_audio": self.alterar_velocidade_audio,
-            "separar_stems_audio": self.separar_stems_audio,
-            "detectar_tom_e_bpm_audio": self.detectar_tom_e_bpm_audio,
-            "normalizar_audio": self.normalizar_audio,
-            "cortar_audio": self.cortar_audio,
-            "baixar_audio_link": self.baixar_audio_link,
-            "transpor_cifra_texto": self.transpor_cifra_texto,
-            "sugerir_tom_ideal_vocal": self.sugerir_tom_ideal_vocal,
-            "gerar_setlist_formatada": self.gerar_setlist_formatada,
-            "exportar_audio": self.exportar_audio,
-            "gerar_click_track": self.gerar_click_track,
-            "exportar_cifra_pdf": self.exportar_cifra_pdf
+    def _process_agent_response(self, response, user_message: str = ""):
+        tools_map = {
+            "change_audio_pitch": self.change_audio_pitch,
+            "change_audio_speed": self.change_audio_speed,
+            "separate_audio_stems": self.separate_audio_stems,
+            "detect_audio_key_and_bpm": self.detect_audio_key_and_bpm,
+            "normalize_audio": self.normalize_audio,
+            "trim_audio": self.trim_audio,
+            "download_audio_link": self.download_audio_link,
+            "transpose_chord_text": self.transpose_chord_text,
+            "suggest_vocal_key": self.suggest_vocal_key,
+            "generate_formatted_setlist": self.generate_formatted_setlist,
+            "export_audio": self.export_audio,
+            "generate_click_track": self.generate_click_track,
+            "export_chord_pdf": self.export_chord_pdf
         }
 
-        if hasattr(resposta, 'model_dump'):
-            resposta_dict = resposta.model_dump()
-        elif isinstance(resposta, dict):
-            resposta_dict = resposta
+        if hasattr(response, 'model_dump'):
+            response_dict = response.model_dump()
+        elif isinstance(response, dict):
+            response_dict = response
         else:
-            resposta_dict = getattr(resposta, '__dict__', {})
+            response_dict = getattr(response, '__dict__', {})
 
-        tool_calls = resposta_dict.get('tool_calls') or getattr(resposta, 'tool_calls', None)
-        content = resposta_dict.get('content') or getattr(resposta, 'content', "")
+        tool_calls = response_dict.get('tool_calls') or getattr(response, 'tool_calls', None)
+        content = response_dict.get('content') or getattr(response, 'content', "")
 
-        print(f"DEBUG TOOL_CALLS ENCONTRADAS: {tool_calls}")
-        print(f"DEBUG CONTEÚDO TEXTO: '{content}'")
+        print(f"DEBUG TOOL_CALLS FOUND: {tool_calls}")
+        print(f"DEBUG TEXT CONTENT: '{content}'")
 
-        msg_norm = self._normalizar_texto(mensagem_usuario)
+        msg_norm = self._normalize_text(user_message)
 
-        # Interceptações de Trava de Segurança
+        # Safety Fallback Interceptions
         if msg_norm:
-            termos_exportacao_audio = ["exporta", "exportar", "wav", "mp3", "salvar", "converte", "convert"]
-            if any(term in msg_norm for term in termos_exportacao_audio) and not any(term in msg_norm for term in ["pdf", "cifra"]):
-                nome_tool_invocada = ""
+            export_terms = ["export", "save", "convert", "wav", "mp3"]
+            if any(term in msg_norm for term in export_terms) and not any(term in msg_norm for term in ["pdf", "cifra", "chord"]):
+                invoked_tool = ""
                 if tool_calls:
-                    primeira_tool = tool_calls[0]
-                    if isinstance(primeira_tool, dict):
-                        nome_tool_invocada = primeira_tool.get('function', {}).get('name', '')
-                    elif hasattr(primeira_tool, 'function'):
-                        nome_tool_invocada = getattr(primeira_tool.function, 'name', '')
+                    first_tool = tool_calls[0]
+                    if isinstance(first_tool, dict):
+                        invoked_tool = first_tool.get('function', {}).get('name', '')
+                    elif hasattr(first_tool, 'function'):
+                        invoked_tool = getattr(first_tool.function, 'name', '')
 
-                if nome_tool_invocada == "mudar_tom_audio" or (not tool_calls and not content):
-                    fmt_alvo = "mp3" if "mp3" in msg_norm else "wav"
-                    self.log(f"[Agente Local]: Processando exportação direta para {fmt_alvo.upper()}...")
-                    resultado = self.exportar_audio(formato=fmt_alvo)
-                    self.log(f"[Agente Local]: {resultado}")
-                    self.atualizar_status("Aguardando comandos...")
+                if invoked_tool == "change_audio_pitch" or (not tool_calls and not content):
+                    target_fmt = "mp3" if "mp3" in msg_norm else "wav"
+                    self.log(f"[Local Agent]: Processing direct export to {target_fmt.upper()}...")
+                    result = self.export_audio(target_format=target_fmt)
+                    self.log(f"[Local Agent]: {result}")
+                    self.update_status("Awaiting commands...")
                     return
 
-            if "pdf" in msg_norm or ("cifra" in msg_norm and "exportar" in msg_norm):
+            if "pdf" in msg_norm or (("cifra" in msg_norm or "chord" in msg_norm) and "export" in msg_norm):
                 if not tool_calls and not content:
-                    titulo = "Cifra"
-                    if "'" in mensagem_usuario:
-                        titulo = mensagem_usuario.split("'")[1].strip().title()
-                    elif '"' in mensagem_usuario:
-                        titulo = mensagem_usuario.split('"')[1].strip().title()
+                    title = "Chord Chart"
+                    if "'" in user_message:
+                        title = user_message.split("'")[1].strip().title()
+                    elif '"' in user_message:
+                        title = user_message.split('"')[1].strip().title()
 
-                    tom = "C"
-                    if "tom de " in mensagem_usuario.lower():
-                        tom = mensagem_usuario.lower().split("tom de ")[1].split(",")[0].strip().upper()
+                    key = "C"
+                    if "key of " in user_message.lower():
+                        key = user_message.lower().split("key of ")[1].split(",")[0].strip().upper()
+                    elif "tom de " in user_message.lower():
+                        key = user_message.lower().split("tom de ")[1].split(",")[0].strip().upper()
 
-                    ministro = "Não informado"
-                    if "ministro " in mensagem_usuario.lower():
-                        ministro = mensagem_usuario.lower().split("ministro ")[1].split(",")[0].title()
+                    minister = "Not informed"
+                    if "minister " in user_message.lower():
+                        minister = user_message.lower().split("minister ")[1].split(",")[0].title()
 
                     bpm = "70"
-                    if "bpm " in mensagem_usuario.lower():
-                        bpm = mensagem_usuario.lower().split("bpm ")[1].split(",")[0].strip()
+                    if "bpm " in user_message.lower():
+                        bpm = user_message.lower().split("bpm ")[1].split(",")[0].strip()
 
-                    texto_cifra = mensagem_usuario
-                    if "cifra:" in mensagem_usuario.lower():
-                        texto_cifra = mensagem_usuario.split("cifra:")[1].strip()
+                    chord_text = user_message
+                    if "cifra:" in user_message.lower():
+                        chord_text = user_message.split("cifra:")[1].strip()
+                    elif "chords:" in user_message.lower():
+                        chord_text = user_message.split("chords:")[1].strip()
 
-                    self.log("[Agente Local]: Processando exportação direta da Cifra para PDF...")
-                    resultado = self.exportar_cifra_pdf(
-                        titulo=titulo, tom=tom, texto_cifra=texto_cifra, ministro=ministro, bpm=bpm
+                    self.log("[Local Agent]: Processing direct export of Chord Chart to PDF...")
+                    result = self.export_chord_pdf(
+                        title=title, key=key, chord_text=chord_text, minister=minister, bpm=bpm
                     )
-                    self.log(f"[Agente Local]: {resultado}")
-                    self.atualizar_status("Aguardando comandos...")
+                    self.log(f"[Local Agent]: {result}")
+                    self.update_status("Awaiting commands...")
                     return
 
-        # Execução das Chamadas de Ferramentas da LLM
+        # Execute LLM Tool Calls
         if tool_calls:
             for tool in tool_calls:
-                nome_funcao = None
-                argumentos = {}
+                func_name = None
+                args = {}
 
                 if isinstance(tool, dict):
-                    funcao_info = tool.get('function', {})
-                    nome_funcao = funcao_info.get('name')
-                    argumentos = funcao_info.get('arguments', {})
+                    func_info = tool.get('function', {})
+                    func_name = func_info.get('name')
+                    args = func_info.get('arguments', {})
                 elif hasattr(tool, 'function'):
-                    nome_funcao = tool.function.name
-                    argumentos = tool.function.arguments
+                    func_name = tool.function.name
+                    args = tool.function.arguments
 
-                if isinstance(argumentos, str):
+                if isinstance(args, str):
                     try:
-                        argumentos = json.loads(argumentos)
+                        args = json.loads(args)
                     except Exception as parse_err:
-                        print("Erro ao converter JSON de argumentos:", parse_err)
+                        print("Error parsing arguments JSON:", parse_err)
 
-                print(f"DEBUG EXECUTANDO TOOL: {nome_funcao} COM ARGS: {argumentos}")
+                print(f"DEBUG EXECUTING TOOL: {func_name} WITH ARGS: {args}")
 
-                if nome_funcao in ferramentas_map:
-                    self.log(f"[Agente Local]: Invocando `{nome_funcao}`...")
+                if func_name in tools_map:
+                    self.log(f"[Local Agent]: Invoking `{func_name}`...")
                     self.update_idletasks()
                     
                     try:
-                        resultado_tool = ferramentas_map[nome_funcao](**argumentos)
-                        self.log(f"[Resultado Tool]:\n{resultado_tool}\n")
+                        tool_result = tools_map[func_name](**args)
+                        self.log(f"[Tool Result]:\n{tool_result}\n")
                     except Exception as err_tool:
-                        resultado_tool = f"Erro ao executar a ferramenta {nome_funcao}: {err_tool}"
-                        self.log(f"[Erro Tool]: {err_tool}")
+                        tool_result = f"Error executing tool {func_name}: {err_tool}"
+                        self.log(f"[Tool Error]: {err_tool}")
 
                     self.update_idletasks()
 
                     try:
-                        nova_resposta = self.agent_manager.enviar_resposta_ferramenta(nome_funcao, str(resultado_tool))
-                        texto_final = nova_resposta.get('content', '') if isinstance(nova_resposta, dict) else getattr(nova_resposta, 'content', '')
-                        if texto_final:
-                            self.log(f"[Agente Local]: {texto_final}")
+                        new_response = self.agent_manager.send_tool_response(func_name, str(tool_result))
+                        final_text = new_response.get('content', '') if isinstance(new_response, dict) else getattr(new_response, 'content', '')
+                        if final_text:
+                            self.log(f"[Local Agent]: {final_text}")
                     except Exception as err_ollama:
-                        print(f"Erro ao re-enviar resposta ao Ollama: {err_ollama}")
-                        self.log("[Agente Local]: Operação concluída com sucesso.")
+                        print(f"Error re-sending response to Ollama: {err_ollama}")
+                        self.log("[Local Agent]: Operation completed successfully.")
                     
-                    self.atualizar_status("Aguardando comandos...")
+                    self.update_status("Awaiting commands...")
                     return
 
         if not tool_calls and not content:
-            self.log("[Agente Local]: O modelo não retornou uma resposta válida. Tente reformular a solicitação.")
-            self.atualizar_status("Aguardando comandos...")
+            self.log("[Local Agent]: The model did not return a valid response. Try reformulating your request.")
+            self.update_status("Awaiting commands...")
             return
 
         if content:
-            self.log(f"[Agente Local]: {content}")
+            self.log(f"[Local Agent]: {content}")
         
-        self.atualizar_status("Aguardando comandos...")
+        self.update_status("Awaiting commands...")
 
     # ==========================================
-    #  FERRAMENTAS DE ÁUDIO & PROCESSAMENTO
+    #  AUDIO & PROCESSING TOOLS
     # ==========================================
-    def _obter_caminho_valido(self, caminho_fornecido: str = "") -> str:
-        if caminho_fornecido and os.path.exists(caminho_fornecido):
-            return caminho_fornecido
-        if hasattr(self, 'caminho_audio_atual') and self.caminho_audio_atual and os.path.exists(self.caminho_audio_atual):
-            return self.caminho_audio_atual
-        if hasattr(self, 'caminho_arquivo') and self.caminho_arquivo and os.path.exists(self.caminho_arquivo):
-            return self.caminho_arquivo
+    def _get_valid_path(self, provided_path: str = "") -> str:
+        if provided_path and os.path.exists(provided_path):
+            return provided_path
+        if hasattr(self, 'current_audio_path') and self.current_audio_path and os.path.exists(self.current_audio_path):
+            return self.current_audio_path
+        if hasattr(self, 'file_path') and self.file_path and os.path.exists(self.file_path):
+            return self.file_path
         return ""
 
-    def mudar_tom_audio(self, caminho_entrada: str = "", semitonos: int = 0, tom_origem: str = None, tom_destino: str = None) -> str:
-        if str(caminho_entrada).strip().lower() in ["none", "null", "nenhum arquivo carregado", "tom identificado", ""]:
-            caminho_entrada = None
+    def change_audio_pitch(self, input_path: str = "", semitones: int = 0, source_key: str = None, target_key: str = None) -> str:
+        if str(input_path).strip().lower() in ["none", "null", "no file loaded", "identified key", "nenhum arquivo carregado", ""]:
+            input_path = None
 
-        caminho_real = self._obter_caminho_valido(caminho_entrada)
-        if not caminho_real:
-            return "Erro: Nenhum arquivo de áudio válido carregado na interface."
+        real_path = self._get_valid_path(input_path)
+        if not real_path:
+            return "Error: No valid audio file loaded in interface."
 
         try:
-            semitonos = int(semitonos)
+            semitones = int(semitones)
         except (ValueError, TypeError):
-            semitonos = 0
+            semitones = 0
 
-        pasta_output = os.path.join(os.getcwd(), "output")
-        os.makedirs(pasta_output, exist_ok=True)
+        output_dir = os.path.join(os.getcwd(), "output")
+        os.makedirs(output_dir, exist_ok=True)
 
-        nome_base, ext = os.path.splitext(os.path.basename(caminho_real))
-        sufixo_tom = f"{'+' if semitonos > 0 else ''}{semitonos}st"
-        nome_arquivo_saida = f"{nome_base}_{sufixo_tom}{ext}"
-        caminho_saida = os.path.join(pasta_output, nome_arquivo_saida)
+        base_name, ext = os.path.splitext(os.path.basename(real_path))
+        pitch_suffix = f"{'+' if semitones > 0 else ''}{semitones}st"
+        output_filename = f"{base_name}_{pitch_suffix}{ext}"
+        output_path = os.path.join(output_dir, output_filename)
 
-        print(f"[DEBUG PROCESSAMENTO AUDIO] Lendo: '{caminho_real}' | Gerando em: '{caminho_saida}' | Semitonos: {semitonos}")
+        print(f"[DEBUG AUDIO PROCESSING] Reading: '{real_path}' | Writing: '{output_path}' | Semitones: {semitones}")
 
         try:
-            # Execução real do Pitch Shift chamando o AudioProcessor
-            AudioProcessor.mudar_tom(caminho_entrada=caminho_real, semitonos=semitonos, caminho_saida=caminho_saida)
+            # AudioProcessor Pitch Shift Execution
+            AudioProcessor.mudar_tom(caminho_entrada=real_path, semitonos=semitones, caminho_saida=output_path)
             
-            # Atualiza os caminhos de áudio ativo
-            self.caminho_audio_atual = caminho_saida
-            self.caminho_arquivo = caminho_saida
+            # Update active audio paths
+            self.current_audio_path = output_path
+            self.file_path = output_path
             
-            novo_tom = tom_destino if (tom_destino and tom_destino not in ["Não detectado", "Desconhecido"]) else self.tom_atual
-            self.tom_atual = novo_tom
+            new_key = target_key if (target_key and target_key not in ["Not detected", "Unknown", "Não detectado"]) else self.current_key
+            self.current_key = new_key
 
-            # Notifica o agent_manager sobre a mudança do áudio ativo
+            # Notify agent manager about context change
             if hasattr(self, "agent_manager") and self.agent_manager:
-                self.agent_manager.atualizar_contexto_sistema(
-                    caminho_audio=caminho_saida,
-                    tom=novo_tom,
-                    bpm=self.bpm_atual
+                self.agent_manager.update_system_context(
+                    audio_path=output_path,
+                    key=new_key,
+                    bpm=self.current_bpm
                 )
 
-            return f"Sucesso: Tom alterado em {semitonos} semitom(s). Arquivo salvo na pasta output: '{nome_arquivo_saida}'."
+            return f"Success: Key shift applied by {semitones} semitone(s). File saved in output directory: '{output_filename}'."
 
         except Exception as e:
-            return f"Erro ao processar alteração de tom: {str(e)}"
+            return f"Error processing key shift: {str(e)}"
 
-    def alterar_velocidade_audio(self, caminho_entrada: str = "", fator_frequencia: float = 1.0) -> str:
-        caminho_valido = self._obter_caminho_valido(caminho_entrada)
-        if not caminho_valido:
-            return "Erro: Nenhum arquivo de áudio válido para alteração de velocidade."
+    def change_audio_speed(self, input_path: str = "", speed_factor: float = 1.0) -> str:
+        valid_path = self._get_valid_path(input_path)
+        if not valid_path:
+            return "Error: No valid audio file for tempo alteration."
 
-        self.atualizar_status(f"[TOOL] Alterando velocidade de '{os.path.basename(caminho_valido)}'...")
-        return AudioProcessor.alterar_velocidade(caminho_valido, fator_frequencia)
+        self.update_status(f"[TOOL] Altering tempo of '{os.path.basename(valid_path)}'...")
+        return AudioProcessor.alterar_velocidade(valid_path, speed_factor)
 
-    def separar_stems_audio(self, caminho_entrada: str = "", modo: str = "2stems") -> str:
-        caminho_valido = self._obter_caminho_valido(caminho_entrada)
-        if not caminho_valido:
-            return "Erro: Nenhum arquivo de áudio válido para separação de stems."
+    def separate_audio_stems(self, input_path: str = "", mode: str = "2stems") -> str:
+        valid_path = self._get_valid_path(input_path)
+        if not valid_path:
+            return "Error: No valid audio file for stem separation."
 
-        self.atualizar_status(f"[TOOL] Separando stems de '{os.path.basename(caminho_valido)}'...")
-        return AudioProcessor.separar_stems(caminho_valido, modo)
+        self.update_status(f"[TOOL] Separating stems for '{os.path.basename(valid_path)}'...")
+        return AudioProcessor.separar_stems(valid_path, mode)
 
-    def detectar_tom_e_bpm_audio(self, caminho_entrada: str = "") -> str:
-        caminho_valido = self._obter_caminho_valido(caminho_entrada)
-        if not caminho_valido:
-            return "Erro: Nenhum arquivo de áudio válido para detecção de tom/BPM."
+    def detect_audio_key_and_bpm(self, input_path: str = "") -> str:
+        valid_path = self._get_valid_path(input_path)
+        if not valid_path:
+            return "Error: No valid audio file for key/BPM detection."
 
-        self.atualizar_status(f"[TOOL] Analisando tom e BPM de '{os.path.basename(caminho_valido)}'...")
-        resultado = AudioProcessor.detectar_tom_e_bpm(caminho_valido)
-        return resultado
+        self.update_status(f"[TOOL] Analyzing key and BPM of '{os.path.basename(valid_path)}'...")
+        result = AudioProcessor.detectar_tom_e_bpm(valid_path)
+        return result
 
-    def normalizar_audio(self, caminho_entrada: str = "", decibeis_alvo: float = -14.0) -> str:
-        caminho_valido = self._obter_caminho_valido(caminho_entrada)
-        if not caminho_valido:
-            return "Erro: Nenhum arquivo de áudio válido para normalização."
+    def normalize_audio(self, input_path: str = "", target_db: float = -14.0) -> str:
+        valid_path = self._get_valid_path(input_path)
+        if not valid_path:
+            return "Error: No valid audio file for volume normalization."
 
-        self.atualizar_status(f"[TOOL] Normalizando '{os.path.basename(caminho_valido)}' para {decibeis_alvo} dBFS...")
-        return AudioProcessor.normalizar_audio(caminho_entrada=caminho_valido, decibeis_alvo=decibeis_alvo)
+        self.update_status(f"[TOOL] Normalizing '{os.path.basename(valid_path)}' to {target_db} dBFS...")
+        return AudioProcessor.normalizar_audio(caminho_entrada=valid_path, decibeis_alvo=target_db)
 
-    def cortar_audio(self, inicio_seg, fim_seg, caminho_entrada: str = None):
-        caminho_valido = self._obter_caminho_valido(caminho_entrada)
-        if not caminho_valido:
-            return "Erro: Nenhum arquivo de áudio válido para corte."
+    def trim_audio(self, start_sec, end_sec, input_path: str = None):
+        valid_path = self._get_valid_path(input_path)
+        if not valid_path:
+            return "Error: No valid audio file for trimming."
 
-        self.atualizar_status(f"[TOOL] Cortando áudio de {inicio_seg} até {fim_seg}...")
+        self.update_status(f"[TOOL] Trimming audio from {start_sec} to {end_sec}...")
         return AudioProcessor.cortar_audio(
-            caminho_entrada=caminho_valido, 
-            inicio_seg=inicio_seg, 
-            fim_seg=fim_seg
+            caminho_entrada=valid_path, 
+            inicio_seg=start_sec, 
+            fim_seg=end_sec
         )
 
     # ==========================================
-    #  FERRAMENTAS DE CIFRA, VOCAL E SETLIST
+    #  CHORD, VOCAL AND SETLIST TOOLS
     # ==========================================
-    def transpor_cifra_texto(self, texto_cifra: str, semitonos: float = None, tom_origem: str = None, tom_destino: str = None) -> str:
-        self.atualizar_status("[TOOL Cifra] Transpondo texto da cifra...")
-        return ChordTransposer.transpor_texto(texto_cifra, semitonos=semitonos, tom_origem=tom_origem, tom_destino=tom_destino)
+    def transpose_chord_text(self, chord_text: str, semitones: float = None, source_key: str = None, target_key: str = None) -> str:
+        self.update_status("[TOOL Chord] Transposing chord text...")
+        return ChordTransposer.transpor_texto(chord_text, semitonos=semitones, tom_origem=source_key, tom_destino=target_key)
 
-    def sugerir_tom_ideal_vocal(self, tom_original: str, nota_min_musica: str, nota_max_musica: str, tipo_voz_ou_min_cantor: str, max_cantor: str = None) -> str:
-        self.atualizar_status("[TOOL Vocal] Calculando tom ideal com base na extensão vocal...")
+    def suggest_vocal_key(self, original_key: str, song_min_note: str, song_max_note: str, vocal_type_or_min_singer: str, singer_max_note: str = None) -> str:
+        self.update_status("[TOOL Vocal] Calculating ideal key based on vocal range...")
         return VocalRangeAnalyzer.sugerir_tom_ideal(
-            tom_original=tom_original,
-            nota_min_musica=nota_min_musica,
-            nota_max_musica=nota_max_musica,
-            tipo_voz_ou_min_cantor=tipo_voz_ou_min_cantor,
-            max_cantor=max_cantor
+            tom_original=original_key,
+            nota_min_musica=song_min_note,
+            nota_max_musica=song_max_note,
+            tipo_voz_ou_min_cantor=vocal_type_or_min_singer,
+            max_cantor=singer_max_note
         )
 
-    def gerar_setlist_formatada(self, json_musicas_str: str, titulo: str = "SETLIST DO CULTO / SHOW") -> str:
-        self.atualizar_status("[TOOL Setlist] Gerando setlist padronizada...")
-        return SetlistFormatter.parse_e_formatar(json_musicas_str, titulo)
+    def generate_formatted_setlist(self, songs_json_str: str, title: str = "WORSHIP / SHOW SETLIST") -> str:
+        self.update_status("[TOOL Setlist] Generating formatted setlist...")
+        return SetlistFormatter.parse_e_formatar(songs_json_str, title)
     
-    def baixar_audio_link(self, url: str) -> str:
+    def download_audio_link(self, url: str) -> str:
         if "&list=" in url:
             url = url.split("&list=")[0]
         if "&start_radio=" in url:
             url = url.split("&start_radio=")[0]
 
-        self.atualizar_status(f"[TOOL] Baixando áudio de: {url}...")
+        self.update_status(f"[TOOL] Downloading audio from: {url}...")
         try:
-            caminho_baixado = AudioDownloader.baixar_audio_por_link(url)
-            self.caminho_arquivo = caminho_baixado
-            self.caminho_audio_atual = caminho_baixado
-            nome_arquivo = os.path.basename(caminho_baixado)
-            self.atualizar_status(f"Áudio ativo: {nome_arquivo}")
+            downloaded_path = AudioDownloader.baixar_audio_por_link(url)
+            self.file_path = downloaded_path
+            self.current_audio_path = downloaded_path
+            filename = os.path.basename(downloaded_path)
+            self.update_status(f"Active audio: {filename}")
 
             if hasattr(self, 'agent_manager') and self.agent_manager:
-                self.agent_manager.atualizar_contexto_sistema(
-                    caminho_audio=caminho_baixado,
-                    tom=self.tom_atual,
-                    bpm=self.bpm_atual
+                self.agent_manager.update_system_context(
+                    audio_path=downloaded_path,
+                    key=self.current_key,
+                    bpm=self.current_bpm
                 )
 
-            return f"Sucesso: Áudio baixado e definido como ativo em '{caminho_baixado}'."
+            return f"Success: Audio downloaded and set active at '{downloaded_path}'."
         except Exception as e:
-            return f"Erro ao baixar áudio: {str(e)}"
+            return f"Error downloading audio: {str(e)}"
 
-    def exportar_audio(self, caminho_entrada: str = "", formato: str = "wav") -> str:
-        caminho_real = self._obter_caminho_valido(caminho_entrada)
-        if not caminho_real:
-            return "Erro: Nenhum arquivo de áudio ativo para exportação."
+    def export_audio(self, input_path: str = "", target_format: str = "wav") -> str:
+        real_path = self._get_valid_path(input_path)
+        if not real_path:
+            return "Error: No active audio file to export."
 
-        fmt = str(formato).lower().replace(".", "").strip()
+        fmt = str(target_format).lower().replace(".", "").strip()
         if fmt not in ["wav", "mp3"]:
             fmt = "wav"
 
         try:
-            self.atualizar_status(f"[TOOL] Exportando áudio para {fmt.upper()}...")
-            caminho_saida = ExportManager.converter_audio(caminho_real, formato_saida=fmt)
-            self.caminho_arquivo = caminho_saida
-            self.caminho_audio_atual = caminho_saida
-            return f"Sucesso! Áudio exportado em formato {fmt.upper()} salvo em: '{caminho_saida}'"
+            self.update_status(f"[TOOL] Exporting audio to {fmt.upper()}...")
+            output_path = ExportManager.converter_audio(real_path, formato_saida=fmt)
+            self.file_path = output_path
+            self.current_audio_path = output_path
+            return f"Success! Audio exported to {fmt.upper()} format saved at: '{output_path}'"
         except Exception as e:
-            return f"Erro ao exportar áudio: {str(e)}"
+            return f"Error exporting audio: {str(e)}"
 
-    def exportar_cifra_pdf(self, titulo: str = "Cifra de Louvor", tom: str = "", texto_cifra: str = "", ministro: str = "", bpm: str = "") -> str:
-        if not texto_cifra.strip():
-            return "Erro: Não há texto de cifra para gerar o PDF."
+    def export_chord_pdf(self, title: str = "Worship Chord Chart", key: str = "", chord_text: str = "", minister: str = "", bpm: str = "") -> str:
+        if not chord_text.strip():
+            return "Error: No chord chart text provided to generate PDF."
         try:
-            self.atualizar_status("[TOOL] Gerando PDF da cifra...")
-            caminho_pdf = ExportManager.gerar_pdf_cifra(
-                titulo=titulo,
-                tom=tom,
-                texto_cifra=texto_cifra,
-                ministro=ministro,
+            self.update_status("[TOOL] Generating Chord Chart PDF...")
+            pdf_path = ExportManager.gerar_pdf_cifra(
+                titulo=title,
+                tom=key,
+                texto_cifra=chord_text,
+                ministro=minister,
                 bpm=bpm
             )
-            return f"Sucesso! Cifra em PDF gerada em: '{caminho_pdf}'."
+            return f"Success! PDF Chord Chart generated at: '{pdf_path}'."
         except Exception as e:
-            return f"Erro ao gerar PDF da cifra: {str(e)}"
+            return f"Error generating PDF Chord Chart: {str(e)}"
 
-    def gerar_click_track(self, bpm: int = 120, formula: str = "4/4", duracao_minutos: float = 3.0) -> str:
+    def generate_click_track(self, bpm: int = 120, time_signature: str = "4/4", duration_minutes: float = 3.0) -> str:
         try:
             bpm = int(bpm)
-            duracao_minutos = float(duracao_minutos)
-            formula = str(formula)
+            duration_minutes = float(duration_minutes)
+            time_signature = str(time_signature)
             
-            caminho_saida = os.path.join(os.getcwd(), "output", "metronomo.wav")
-            os.makedirs(os.path.dirname(caminho_saida), exist_ok=True)
+            output_path = os.path.join(os.getcwd(), "output", "metronome.wav")
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
             
             from tools.audio_tools import gerar_click_track as backend_gerar_click
             
-            resultado = backend_gerar_click(
+            result = backend_gerar_click(
                 bpm=bpm,
-                formula=formula,
-                duracao_minutos=duracao_minutos,
-                caminho_saida=caminho_saida
+                formula=time_signature,
+                duracao_minutos=duration_minutes,
+                caminho_saida=output_path
             )
-            return resultado
+            return result
 
         except Exception as e:
-            return f"Erro ao executar geração de click track: {str(e)}"
+            return f"Error generating click track: {str(e)}"
 
 # ==========================================
-#  EXECUÇÃO DIRETA
+#  DIRECT EXECUTION
 # ==========================================
 if __name__ == "__main__":
     app = TransposerApp()

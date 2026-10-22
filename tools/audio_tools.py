@@ -3,57 +3,63 @@ import math
 import numpy as np
 from scipy.io import wavfile
 
-def gerar_click_track(bpm: int = 120, formula: str = "4/4", duracao_minutos: float = 3.0, caminho_saida: str = "output/metronomo.wav") -> str:
+def generate_click_track(bpm: int = 120, time_signature: str = "4/4", duration_minutes: float = 3.0, output_path: str = "output/metronome.wav") -> str:
     """
-    Gera um arquivo de áudio WAV de click track / metrônomo personalizado.
+    Generates a custom metronome/click track WAV audio file.
     
-    :param bpm: Batidas por minuto (ex: 120).
-    :param formula: Fórmula de compasso ("4/4", "3/4", "6/8").
-    :param duracao_minutos: Duração total do clique em minutos.
-    :param caminho_saida: Caminho para salvar o arquivo de saída.
-    :return: Mensagem de sucesso ou erro.
+    :param bpm: Beats per minute (e.g., 120).
+    :param time_signature: Time signature formula ("4/4", "3/4", "6/8").
+    :param duration_minutes: Total click duration in minutes.
+    :param output_path: Output file destination path.
+    :return: Success or error message.
     """
     try:
-        os.makedirs(os.path.dirname(caminho_saida), exist_ok=True)
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
         sample_rate = 44100
         
-        # Define tempos por compasso
-        partes = formula.split('/')
-        num_tempos = int(partes[0]) if len(partes) > 0 else 4
+        # Parse beats per measure
+        parts = time_signature.split('/')
+        beats_per_measure = int(parts[0]) if len(parts) > 0 else 4
         
-        # Duração total e intervalos
-        intervalo_tempo = 60.0 / float(bpm)
-        total_segundos = float(duracao_minutos) * 60.0
-        total_batidas = int(total_segundos / intervalo_tempo)
+        # Total duration and beat intervals
+        beat_interval = 60.0 / float(bpm)
+        total_seconds = float(duration_minutes) * 60.0
+        total_beats = int(total_seconds / beat_interval)
         
-        # Duração de cada bipe (100ms)
-        duracao_bipe = 0.1
-        t_bipe = np.linspace(0, duracao_bipe, int(sample_rate * duracao_bipe), False)
+        # Beep duration (100ms)
+        beep_duration = 0.1
+        t_beep = np.linspace(0, beep_duration, int(sample_rate * beep_duration), False)
         
-        # Frequências: Agudo no tempo 1 (cabeça do compasso), Médio nos demais
-        bipe_forte = 0.5 * np.sin(2 * np.pi * 1200 * t_bipe) # 1200Hz
-        bipe_fraco = 0.3 * np.sin(2 * np.pi * 800 * t_bipe)  # 800Hz
+        # Frequencies: High pitch on beat 1 (downbeat), Medium pitch on remaining beats
+        strong_beep = 0.5 * np.sin(2 * np.pi * 1200 * t_beep)  # 1200Hz
+        weak_beep = 0.3 * np.sin(2 * np.pi * 800 * t_beep)     # 800Hz
         
-        # Envoltória de suavização (Fade out rápido para evitar 'clicks' secos)
-        envelope = np.exp(-t_bipe * 30)
-        bipe_forte = (bipe_forte * envelope * 32767).astype(np.int16)
-        bipe_fraco = (bipe_fraco * envelope * 32767).astype(np.int16)
+        # Smoothing envelope (Fast fade-out to prevent clipping pops)
+        envelope = np.exp(-t_beep * 30)
+        strong_beep = (strong_beep * envelope * 32767).astype(np.int16)
+        weak_beep = (weak_beep * envelope * 32767).astype(np.int16)
         
-        # Buffer de áudio total
-        amostras_totais = int(sample_rate * total_segundos)
-        audio_buffer = np.zeros(amostras_totais, dtype=np.int16)
+        # Total audio sample buffer
+        total_samples = int(sample_rate * total_seconds)
+        audio_buffer = np.zeros(total_samples, dtype=np.int16)
         
-        for idx in range(total_batidas):
-            posicao_amostra = int(idx * intervalo_tempo * sample_rate)
-            eh_cabeca_compasso = (idx % num_tempos == 0)
-            bipe_atual = bipe_forte if eh_cabeca_compasso else bipe_fraco
+        for idx in range(total_beats):
+            sample_position = int(idx * beat_interval * sample_rate)
+            is_downbeat = (idx % beats_per_measure == 0)
+            current_beep = strong_beep if is_downbeat else weak_beep
             
-            fim_pos = posicao_amostra + len(bipe_atual)
-            if fim_pos < amostras_totais:
-                audio_buffer[posicao_amostra:fim_pos] = bipe_atual
+            end_position = sample_position + len(current_beep)
+            if end_position < total_samples:
+                audio_buffer[sample_position:end_position] = current_beep
 
-        wavfile.write(caminho_saida, sample_rate, audio_buffer)
-        return f"Sucesso! Metrônomo ({bpm} BPM, {formula}) gerado em: '{caminho_saida}'"
+        wavfile.write(output_path, sample_rate, audio_buffer)
+        return f"Success! Click track ({bpm} BPM, {time_signature}) generated at: '{output_path}'"
         
     except Exception as e:
-        return f"Erro ao gerar click track: {str(e)}"
+        return f"Error generating click track: {str(e)}"
+
+# =========================================================================
+# BACKWARD COMPATIBILITY ALIAS
+# =========================================================================
+def gerar_click_track(bpm: int = 120, formula: str = "4/4", duracao_minutos: float = 3.0, caminho_saida: str = "output/metronomo.wav") -> str:
+    return generate_click_track(bpm=bpm, time_signature=formula, duration_minutes=duracao_minutos, output_path=caminho_saida)

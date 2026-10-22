@@ -1,40 +1,41 @@
-# 🎵 Harmoniq AI - Agente Local de Processamento de Áudio e Cifras
+# 🎵 Harmoniq AI — Local Audio Processing & Chord Chart Assistant
 
-Aplicação desktop interativa desenvolvida em Python para manipulação, processamento de áudio e gerenciamento de cifras. Utiliza **Ollama** com **Qwen 2.5 3B** para interpretar comandos em linguagem natural e invocar ferramentas automaticamente de forma local.
-
----
-
-## 🛠️ Tecnologias Utilizadas
-
-* **Linguagem:** Python 3.10+
-* **Interface Gráfica:** Tkinter / CustomTkinter
-* **LLM Local & Tools:** Ollama (`qwen2.5:3b`)
-* **Processamento de Áudio:** Librosa, SoundFile, PyDub, Demucs (Separação de Stems)
-* **Geração de PDF:** ReportLab
+An interactive desktop application built in Python for audio manipulation, digital signal processing (DSP), and chord chart management. It leverages a local **Ollama** instance running **Qwen 2.5 3B** to interpret natural language commands and invoke system tools automatically.
 
 ---
 
-## 📋 Pré-requisitos
+## 🛠️ Built With
 
-Antes de iniciar, certifique-se de ter os seguintes programas instalados no sistema:
+* **Language:** Python 3.10+
+* **GUI Framework:** Tkinter / CustomTkinter
+* **Local LLM & Tool Calling:** Ollama (`qwen2.5:3b`)
+* **Audio Processing & DSP:** Librosa, SoundFile, PyDub, Demucs (Stem Separation), Scipy
+* **PDF Export & Rendering:** WeasyPrint / ReportLab
+* **Media Downloader:** `yt-dlp`
 
-1. **Python 3.10 ou superior:** [Download Python](https://www.python.org/downloads/)
-2. **FFmpeg:** Necessário para manipular diferentes formatos de áudio via PyDub/Librosa.
+---
+
+## 📋 Prerequisites
+
+Before starting, ensure you have the following installed on your system:
+
+1. **Python 3.10 or higher:** [Download Python](https://www.python.org/downloads/)
+2. **FFmpeg:** Required for multi-format audio conversion via Librosa and PyDub.
    * *Linux (Ubuntu/Debian):* `sudo apt install ffmpeg`
-   * *Windows:* Baixar pelo site oficial e adicionar o executável à variável de ambiente `PATH`.
+   * *Windows:* Download from the official website and add the binary directory to your `PATH` environment variable.
 3. **Ollama:** [Download Ollama](https://ollama.com/)
 
 ---
 
-## 🚀 Instalação e Configuração
+## 🚀 Installation & Setup
 
-### 1. Clonar o Repositório
+### 1. Clone the Repository
 ```bash
 git clone [https://github.com/PhaellZX/harmoniq_ai_agent.git](https://github.com/PhaellZX/harmoniq_ai_agent.git)
-cd seu-repositorio
+cd harmoniq_ai_agent
 ```
 
-### 2. Criar e Ativar o Ambiente Virtual
+### 2. Create and Activate a Virtual Environment
 
 * Linux/macOS:
 ```bash
@@ -48,60 +49,74 @@ python -m venv venv
 .\venv\Scripts\Activate.ps1
 ```
 
-### 3. Instalar Dependências
+### 3. Install Dependencies
 ```bash
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 4. Baixar o Modelo no Ollama
+### 4. Pull the Local Ollama Model
 
-Garanta que o serviço do Ollama esteja rodando em segundo plano e execute:
+Ensure the Ollama service is running in the background and execute:
 ```bash
 ollama pull qwen2.5:3b
 ```
 
-### 5. Executar a Aplicação
+### 5. Run the Application
 ```bash
 python main.py
 ```
 
-## 🧪 Guia de Testes e Prompts Sugeridos
+## 🧪 Prompt & Feature Testing Guide
 
-Com o áudio carregado ou com o sistema pronto, você pode enviar comandos diretamente pelo chat da interface.
+Once an audio file is loaded into the interface or when issuing standalone commands, you can converse directly with the agent through the application chat box.
 
-### 🎛️ Processamento de Áudio
+### 🎛️ Audio Processing & DSP
 
-| Funcionalidade | Descrição | Exemplo de Prompt |
+| Feature | Description | Example Prompt |
 | :--- | :--- | :--- |
-| **Normalização** | Ajusta o ganho do áudio para um volume padrão. | `"Normalize o áudio atual"` ou `"Normalize para -14 dB"` |
-| **Mudança de Tom** | Altera a altura (pitch) do áudio em semitonos. | `"Aumente o tom em 2 semitonos"` ou `"Abaixo o tom em 1 semitono"` |
-| **Alteração de Velocidade** | Altera a velocidade sem modificar o tom. | `"Deixe o áudio 10% mais rápido"` ou `"Acelere em 1.2x"` |
-| **Corte de Áudio** | Recorta um trecho específico do arquivo. | `"Corte o áudio dos 10 segundos até 45 segundos"` |
-| **Análise de Tom e BPM** | Detecta a tonalidade e a velocidade da música. | `"Qual é o tom e o BPM dessa música?"` |
-| **Separação de Stems** | Separa o áudio em faixas isoladas (vocal e instrumental). | `"Separe a voz do instrumental"` ou `"Remova os vocais da música"` |
-| **Exportação Direta** | Exporta a faixa para formatos específicos de áudio. | `"Exportar para MP3"` ou `"Salvar como WAV"` |
+| **Audio Normalization** | Adjusts peak audio gain to a target dBFS level without distortion. | `"Normalize current audio"` or `"Normalize audio to -14 dBFS"` |
+| **Pitch Shift / Key Change** | Transposes audio pitch by semitones without affecting speed. | `"Lower pitch by 2 semitones"` or `"Raise key by 1 semitone"` |
+| **Tempo / Speed Control** | Changes playback speed (time stretch) without altering pitch. | `"Make audio 10% faster"` or `"Set playback speed to 0.9x"` |
+| **Audio Trimming** | Cuts a specific time segment from the active audio file. | `"Trim audio from 0:10 to 1:45"` |
+| **Key & BPM Analysis** | Detects musical key signature and tempo from audio. | `"What is the key and BPM of this song?"` |
+| **Stem Separation** | Isolates vocals, instruments, or backing tracks using Demucs. | `"Separate vocals from instrumental"` or `"Remove vocals from track"` |
+| **Direct Audio Export** | Converts and exports active audio into WAV or MP3. | `"Export to MP3"` or `"Save active track as WAV"` |
+| **Audio Downloader** | Downloads audio directly from YouTube or web URLs. | `"Download audio from https://www.youtube.com/watch?v=..."` |
 
 ---
 
-### 🎼 Cifras, Metrônomo e Utilitários
+### 🎼 Chord Charts, Metronome & Utilities
 
-| Funcionalidade | Descrição | Exemplo de Prompt |
+| Feature | Description | Example Prompt |
 | :--- | :--- | :--- |
-| **Transposição de Cifra** | Transpõe o texto de uma cifra para outro tom. | `"Transponha esta cifra de C para E: C G Am F"` |
-| **Exportação de PDF** | Gera um documento PDF formatado com a cifra. | `"Exportar cifra em PDF título 'Porque Ele Vive', tom de G, ministro 'Harpa', bpm 70, cifra: G C D G"` |
-| **Gerar Metrônomo / Click** | Cria uma faixa de metrônomo personalizada. | `"Gere um click track com 120 bpm, fórmula 4/4 por 3 minutos"` |
-| **Sugestão Vocal** | Recomenda ajustes de tom com base na extensão. | `"Qual o tom ideal para vocal feminino se a música original está em G?"` |
-| **Gerar Setlist** | Formata e organiza uma lista de músicas para apresentação. | `"Gere uma setlist formatada com as músicas: Ninguém Explica Deus, Ligar Aos Céus e Me Atraiu"` |
+| **Chord Chart Transposition** | Transposes written chord chart text into a target key. | `"Transpose this chord chart from C to E: C G Am F"` |
+| **PDF Export** | Generates a styled rehearsal PDF document with chord charts. | `"Export chord PDF title 'Because He Lives', key G, minister 'Band', bpm 70, chords: G C D G"` |
+| **Click Track / Metronome** | Generates a custom WAV metronome audio file. | `"Generate click track at 120 BPM, 4/4 time signature for 3 minutes"` |
+| **Vocal Range Analyzer** | Recommends optimal key shifts based on singer classification. | `"Suggest ideal key for tenor vocal if original song is in Ab"` |
+| **Setlist Formatter** | Formats and structures worship/gig song list orders. | `"Generate setlist with songs: Amazing Grace, Way Maker, How Great Is Our God"` |
 
-## 📁 Estrutura das Pastas
+## 📁 Repository Structure
 
 ```bash
-├── core/                   # Módulos de processamento (AudioProcessor, PDF, etc.)
-├── agent/                  # Integração com a LLM e ferramentas
-├── gui/                    # Interface gráfica Tkinter
-├── output/                 # Diretório onde são salvos os arquivos gerados (áudio/PDF)
-├── requirements.txt        # Lista de dependências Python
-├── main.py                 # Ponto de entrada da aplicação
-└── README.md               # Documentação do projeto
+harmoniq_ai_agent/
+├── agent/                  # Ollama client manager and tool definition definitions
+│   ├── client.py
+│   └── tools.py
+├── core/                   # Core processing modules (Audio, Chords, Vocal, Setlist)
+│   ├── audio_processor.py
+│   ├── chord_transposer.py
+│   ├── downloader.py
+│   ├── setlist.py
+│   └── vocal_range.py
+├── gui/                    # CustomTkinter interface components
+│   └── main_window.py
+├── tools/                  # Utility scripts (Click track generator)
+│   └── audio_tools.py
+├── utils/                  # Export and conversion pipelines
+│   └── export_manager.py
+├── output/                 # Default output directory for generated audio and PDF files
+├── main.py                 # Application entry point
+├── requirements.txt        # Python dependency manifest
+└── README.md               # Project documentation
 ```

@@ -1,103 +1,121 @@
 import re
 
 class VocalRangeAnalyzer:
-    NOTAS_INDEX = {
+    NOTE_INDEX = {
         'C': 0, 'C#': 1, 'DB': 1, 'D': 2, 'D#': 3, 'EB': 3,
         'E': 4, 'F': 5, 'F#': 6, 'GB': 6, 'G': 7, 'G#': 8,
         'AB': 8, 'A': 9, 'A#': 10, 'BB': 10, 'B': 11
     }
     
-    INDEX_PARA_NOTA = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+    INDEX_TO_NOTE = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 
-    # Extensões vocais confortáveis padrão (Oitavas MIDI)
-    CLASSIFICACOES_VOCAIS = {
+    # Standard comfortable vocal ranges (MIDI Octaves)
+    VOCAL_CLASSIFICATIONS = {
         "soprano":   ("C4", "A5"),
         "mezzo":     ("A3", "F5"),
+        "alto":      ("F3", "D5"),
         "contralto": ("F3", "D5"),
         "tenor":     ("C3", "A4"),
+        "baritone":  ("G2", "E4"),
         "baritono":  ("G2", "E4"),
+        "bass":      ("E2", "C4"),
         "baixo":     ("E2", "C4")
     }
 
     @classmethod
-    def _normalizar_nota(cls, nota_str: str, oitava_padrao: int = 4) -> str:
-        """Garante que a nota tenha a oitava especificada (ex: 'D' vira 'D3' se necessário)."""
-        nota_str = str(nota_str).strip().upper()
-        # Se veio apenas a nota sem oitava (ex: 'D' ou 'B')
-        match = re.match(r'^([A-G][#B]?)$', nota_str)
+    def _normalize_note(cls, note_str: str, default_octave: int = 4) -> str:
+        """Ensures the note string includes an octave (e.g., 'D' becomes 'D4' if unspecified)."""
+        note_str = str(note_str).strip().upper()
+        match = re.match(r'^([A-G][#B]?)$', note_str)
         if match:
-            return f"{match.group(1)}{oitava_padrao}"
-        return nota_str
+            return f"{match.group(1)}{default_octave}"
+        return note_str
 
     @classmethod
-    def nota_para_midi(cls, nota_str: str) -> int:
-        nota_clean = str(nota_str).strip().upper()
-        match = re.match(r'^([A-G][#B]?)(-?\d+)$', nota_clean)
+    def note_to_midi(cls, note_str: str) -> int:
+        clean_note = str(note_str).strip().upper()
+        match = re.match(r'^([A-G][#B]?)(-?\d+)$', clean_note)
         if not match:
-            raise ValueError(f"Formato inválido: '{nota_str}'")
+            raise ValueError(f"Invalid note format: '{note_str}'")
         
-        nome_nota, oitava = match.groups()
-        return (int(oitava) + 1) * 12 + cls.NOTAS_INDEX[nome_nota]
+        note_name, octave = match.groups()
+        return (int(octave) + 1) * 12 + cls.NOTE_INDEX[note_name]
 
     @classmethod
-    def midi_para_nota(cls, midi_val: int) -> str:
-        oitava = (midi_val // 12) - 1
-        nota = cls.INDEX_PARA_NOTA[midi_val % 12]
-        return f"{nota}{oitava}"
+    def midi_to_note(cls, midi_val: int) -> str:
+        octave = (midi_val // 12) - 1
+        note = cls.INDEX_TO_NOTE[midi_val % 12]
+        return f"{note}{octave}"
 
     @classmethod
-    def sugerir_tom_ideal(cls, tom_original: str, nota_min_musica: str, nota_max_musica: str, 
-                           tipo_voz_ou_min_cantor: str, max_cantor: str = None) -> str:
+    def suggest_ideal_key(cls, original_key: str, song_min_note: str, song_max_note: str, 
+                          vocal_type_or_min_singer: str, singer_max_note: str = None) -> str:
+        """
+        Calculates optimal key transposition to fit song pitch within singer range or vocal type.
+        """
         try:
-            # Sanitiza as entradas
-            nota_min_musica = cls._normalizar_nota(nota_min_musica, oitava_padrao=3)
-            nota_max_musica = cls._normalizar_nota(nota_max_musica, oitava_padrao=4)
+            song_min_note = cls._normalize_note(song_min_note, default_octave=3)
+            song_max_note = cls._normalize_note(song_max_note, default_octave=4)
 
-            tipo_voz = str(tipo_voz_ou_min_cantor).lower().strip()
+            vocal_type = str(vocal_type_or_min_singer).lower().strip()
 
-            if tipo_voz in cls.CLASSIFICACOES_VOCAIS:
-                cantor_min_str, cantor_max_str = cls.CLASSIFICACOES_VOCAIS[tipo_voz]
+            if vocal_type in cls.VOCAL_CLASSIFICATIONS:
+                singer_min_str, singer_max_str = cls.VOCAL_CLASSIFICATIONS[vocal_type]
             else:
-                cantor_min_str = cls._normalizar_nota(tipo_voz_ou_min_cantor, oitava_padrao=3)
-                cantor_max_str = cls._normalizar_nota(max_cantor if max_cantor else "A4", oitava_padrao=4)
+                singer_min_str = cls._normalize_note(vocal_type_or_min_singer, default_octave=3)
+                singer_max_str = cls._normalize_note(singer_max_note if singer_max_note else "A4", default_octave=4)
 
-            cantor_min = cls.nota_para_midi(cantor_min_str)
-            cantor_max = cls.nota_para_midi(cantor_max_str)
+            singer_min = cls.note_to_midi(singer_min_str)
+            singer_max = cls.note_to_midi(singer_max_str)
 
-            musica_min = cls.nota_para_midi(nota_min_musica)
-            musica_max = cls.nota_para_midi(nota_max_musica)
+            song_min = cls.note_to_midi(song_min_note)
+            song_max = cls.note_to_midi(song_max_note)
 
-            if musica_min >= cantor_min and musica_max <= cantor_max:
-                return (f"A música já está confortável no tom atual ({tom_original}). "
-                        f"Alcance da música: {nota_min_musica}-{nota_max_musica} | Alcance do vocal: {cantor_min_str}-{cantor_max_str}.")
+            if song_min >= singer_min and song_max <= singer_max:
+                return (f"The song is already comfortable in its current key ({original_key}). "
+                        f"Song range: {song_min_note}-{song_max_note} | Vocal range: {singer_min_str}-{singer_max_str}.")
 
-            deslocamento = 0
-            if musica_max > cantor_max:
-                deslocamento = cantor_max - musica_max
-            elif musica_min < cantor_min:
-                deslocamento = cantor_min - musica_min
+            shift = 0
+            if song_max > singer_max:
+                shift = singer_max - song_max
+            elif song_min < singer_min:
+                shift = singer_min - song_min
 
-            match_tom = re.match(r'^[A-G][#B]?', tom_original.strip().upper())
-            if not match_tom:
-                return f"Erro: Não foi possível identificar o tom original '{tom_original}'."
+            match_key = re.match(r'^[A-G][#B]?', original_key.strip().upper())
+            if not match_key:
+                return f"Error: Could not identify original root key from '{original_key}'."
             
-            raiz_original = match_tom.group(0)
-            midi_raiz_original = cls.NOTAS_INDEX[raiz_original]
-            midi_nova_raiz = (midi_raiz_original + deslocamento) % 12
-            nova_raiz = cls.INDEX_PARA_NOTA[midi_nova_raiz]
+            original_root = match_key.group(0)
+            original_root_midi = cls.NOTE_INDEX[original_root]
+            new_root_midi = (original_root_midi + shift) % 12
+            new_root = cls.INDEX_TO_NOTE[new_root_midi]
 
-            sufixo_tom = tom_original.strip()[len(raiz_original):]
-            novo_tom = f"{nova_raiz}{sufixo_tom}"
+            key_suffix = original_key.strip()[len(original_root):]
+            new_key = f"{new_root}{key_suffix}"
 
-            sinal = "+" if deslocamento > 0 else ""
+            sign = "+" if shift > 0 else ""
             
             return (
-                f"Sugestão de Tom Ideal: **{novo_tom}** ({sinal}{deslocamento} semitonos).\n"
-                f"- Tom Original: {tom_original}\n"
-                f"- Alcance da Música Original: {nota_min_musica} até {nota_max_musica}\n"
-                f"- Alcance Recomendado ({tipo_voz.capitalize()}): {cantor_min_str} até {cantor_max_str}\n"
-                f"- Novo Alcance Ajustado: {cls.midi_para_nota(musica_min + deslocamento)} até {cls.midi_para_nota(musica_max + deslocamento)}"
+                f"Suggested Ideal Key: **{new_key}** ({sign}{shift} semitones).\n"
+                f"- Original Key: {original_key}\n"
+                f"- Original Song Range: {song_min_note} to {song_max_note}\n"
+                f"- Target Vocal Range ({vocal_type.capitalize()}): {singer_min_str} to {singer_max_str}\n"
+                f"- Adjusted Song Range: {cls.midi_to_note(song_min + shift)} to {cls.midi_to_note(song_max + shift)}"
             )
 
         except Exception as e:
-            return f"Erro ao calcular encaixe vocal: {str(e)}"
+            return f"Error calculating vocal fit: {str(e)}"
+
+    # =========================================================================
+    # BACKWARD COMPATIBILITY ALIASES
+    # =========================================================================
+    @classmethod
+    def sugerir_tom_ideal(cls, tom_original: str, nota_min_musica: str, nota_max_musica: str, 
+                           tipo_voz_ou_min_cantor: str, max_cantor: str = None) -> str:
+        return cls.suggest_ideal_key(
+            original_key=tom_original,
+            song_min_note=nota_min_musica,
+            song_max_note=nota_max_musica,
+            vocal_type_or_min_singer=tipo_voz_ou_min_cantor,
+            singer_max_note=max_cantor
+        )
